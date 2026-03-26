@@ -97,10 +97,15 @@ export function ResourcesPage() {
   const rest   = filtered.filter(r => !r.is_pinned)
 
   async function openResource(r: InternalResource) {
-    if (r.external_url) { window.open(r.external_url, '_blank'); return }
+    if (r.external_url) { window.open(r.external_url, '_blank', 'noopener,noreferrer'); return }
     if (r.file_path) {
+      const newWindow = window.open('', '_blank', 'noopener,noreferrer')
       const { data } = await supabase.storage.from('internal-resources').createSignedUrl(r.file_path, 3600)
-      if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+      if (data?.signedUrl && newWindow) {
+        newWindow.location.href = data.signedUrl
+      } else if (newWindow) {
+        newWindow.close()
+      }
     }
   }
 

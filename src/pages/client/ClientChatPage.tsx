@@ -8,6 +8,36 @@ import { PLUGS, SERVICE_LABELS } from '../../types'
 import type { ChatMessage, PlugId, ProjectPlug, Project, Client } from '../../types'
 import { PLUG_SYSTEM_PROMPTS } from '../../lib/plugPrompts'
 
+function renderMarkdownLine(line: string, key: number) {
+  const parts = line.split(/(\*\*[^*]+\*\*)/)
+  return (
+    <span key={key}>
+      {parts.map((part, i) =>
+        part.startsWith('**') && part.endsWith('**')
+          ? <strong key={i} className="font-semibold text-white">{part.slice(2, -2)}</strong>
+          : part
+      )}
+    </span>
+  )
+}
+
+function ChatMarkdown({ content }: { content: string }) {
+  const lines = content.split('\n')
+  return (
+    <div className="text-sm leading-relaxed text-white/85">
+      {lines.map((line, i) => {
+        if (line.trim() === '---') {
+          return <hr key={i} className="border-white/10 my-2" />
+        }
+        if (line === '') {
+          return <div key={i} className="h-2" />
+        }
+        return <div key={i}>{renderMarkdownLine(line, i)}</div>
+      })}
+    </div>
+  )
+}
+
 const PLUG_INFO: Record<PlugId, { icon: string; title: string; desc: string }> = {
   onboarding: { icon: '🚀', title: 'Onboarding', desc: 'Configura tu empleado digital desde cero con una guía inteligente' },
   report_error: { icon: '🐛', title: 'Reportar un error', desc: 'Documenta una respuesta incorrecta de tu empleado digital' },
@@ -452,8 +482,8 @@ export function ClientChatPage() {
                   {msg.content}
                 </div>
               ) : (
-                <NodoCard dark padding="sm" className="text-sm leading-relaxed whitespace-pre-wrap text-white/85">
-                  {msg.content}
+                <NodoCard dark padding="sm">
+                  <ChatMarkdown content={msg.content} />
                 </NodoCard>
               )}
               <span className="text-[10px] text-[#6B6B80] px-1">

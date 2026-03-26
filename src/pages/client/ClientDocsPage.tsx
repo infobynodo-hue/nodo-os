@@ -100,30 +100,36 @@ function resourceCategoryIcon(category: InternalResource['category']) {
 
 async function openResource(resource: InternalResource) {
   if (resource.external_url) {
-    window.open(resource.external_url, '_blank')
+    window.open(resource.external_url, '_blank', 'noopener,noreferrer')
     return
   }
   if (resource.file_path) {
+    const newWindow = window.open('', '_blank', 'noopener,noreferrer')
     const { data } = await supabase.storage
       .from('internal-resources')
       .createSignedUrl(resource.file_path, 3600)
-    if (data?.signedUrl) {
-      window.open(data.signedUrl, '_blank')
+    if (data?.signedUrl && newWindow) {
+      newWindow.location.href = data.signedUrl
+    } else if (newWindow) {
+      newWindow.close()
     }
   }
 }
 
 async function openDeliverable(item: ProjectDeliverable) {
   if (item.external_url) {
-    window.open(item.external_url, '_blank')
+    window.open(item.external_url, '_blank', 'noopener,noreferrer')
     return
   }
   if (item.file_path) {
+    const newWindow = window.open('', '_blank', 'noopener,noreferrer')
     const { data } = await supabase.storage
       .from('internal-resources')
       .createSignedUrl(item.file_path, 3600)
-    if (data?.signedUrl) {
-      window.open(data.signedUrl, '_blank')
+    if (data?.signedUrl && newWindow) {
+      newWindow.location.href = data.signedUrl
+    } else if (newWindow) {
+      newWindow.close()
     }
   }
 }
