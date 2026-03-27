@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send, Bot, User, Paperclip, X, Loader2 } from 'lucide-react'
+import { Send, Bot, User, Paperclip, X, Loader2, Mic, MicOff } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { NodoCard } from '../../components/ui/NodoCard'
@@ -78,9 +78,34 @@ export function ClientChatPage() {
   const [client, setClient] = useState<Client | null>(null)
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function toggleVoice() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) return
+    if (recording) {
+      recognitionRef.current?.stop()
+      setRecording(false)
+      return
+    }
+    const rec: SpeechRecognition = new SR()
+    rec.lang = 'es-ES'
+    rec.continuous = false
+    rec.interimResults = true
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join('')
+      setInput(transcript)
+    }
+    rec.onend = () => setRecording(false)
+    rec.onerror = () => setRecording(false)
+    recognitionRef.current = rec
+    rec.start()
+    setRecording(true)
+  }
 
   useEffect(() => {
     if (user?.projectId) {
@@ -550,6 +575,19 @@ export function ClientChatPage() {
             />
           </div>
 
+          {/* Voice input button */}
+          <button
+            onClick={toggleVoice}
+            title={recording ? 'Detener grabación' : 'Hablar'}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-colors ${
+              recording
+                ? 'bg-[#C026A8]/20 border-[#C026A8] text-[#C026A8] animate-pulse'
+                : 'bg-[#1A1825] border-[#1E1C2A] text-[#6B6B80] hover:border-[#C026A8]/40 hover:text-[#C026A8]'
+            }`}
+          >
+            {recording ? <MicOff size={16} /> : <Mic size={16} />}
+          </button>
+
           {/* File attach button — only for plugs that accept files */}
           {currentPlugDef?.accepts_files && (
             <>
@@ -583,7 +621,7 @@ export function ClientChatPage() {
           </NodoButton>
         </div>
         <p className="text-[10px] text-[#6B6B80] mt-1.5 text-center">
-          Enter para enviar · Shift+Enter para nueva línea
+          Enter para enviar · Shift+Enter para nueva línea · 🎙 para hablar
         </p>
       </div>
     </div>
