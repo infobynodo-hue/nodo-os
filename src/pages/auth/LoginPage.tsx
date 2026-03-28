@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Bot, Lock, Mail } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useAuthStore } from '../../store/auth'
 import { NodoButton } from '../../components/ui/NodoButton'
 import { NodoInput } from '../../components/ui/NodoInput'
+import { NodoIsotipo } from '../../components/ui/NodoIsotipo'
 
 export function LoginPage() {
   const { signIn, loading } = useAuthStore()
@@ -32,26 +33,26 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#08070F] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F7F6FC] flex items-center justify-center p-4">
       {/* Background gradient orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#C026A8]/6 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-[#8B22E8]/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#C026A8]/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-[#8B22E8]/6 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-sm relative fade-in">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#E040A0] via-[#C026A8] to-[#8B22E8] flex items-center justify-center shadow-[0_0_30px_rgba(192,38,168,0.3)] mb-4">
-            <Bot size={28} className="text-white" />
+          <div className="w-16 h-16 flex items-center justify-center mb-4 drop-shadow-[0_0_20px_rgba(192,38,168,0.45)]">
+            <NodoIsotipo size={56} />
           </div>
-          <h1 className="text-2xl font-bold text-white">NODO OS</h1>
+          <h1 className="text-2xl font-bold text-[#1A1827] tracking-wide">NODO ONE</h1>
           <p className="text-sm text-[#6B6B80] mt-1">Plataforma de gestión de servicios</p>
         </div>
 
         {/* Form */}
-        <div className="bg-[#12101A] border border-[#1E1C2A] rounded-2xl p-6 shadow-[0_0_40px_rgba(0,0,0,0.4)]">
-          <h2 className="text-base font-semibold text-white mb-5">Iniciar sesión</h2>
+        <div className="bg-white border border-[#E8E6F0] rounded-2xl p-6 shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
+          <h2 className="text-base font-semibold text-[#1A1827] mb-5">Iniciar sesión</h2>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <NodoInput
@@ -76,7 +77,7 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-[#6B6B80] hover:text-white transition-colors"
+                  className="text-[#6B6B80] hover:text-[#1A1827] transition-colors"
                 >
                   {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
@@ -93,7 +94,7 @@ export function LoginPage() {
 
             <NodoButton
               type="submit"
-              variant="primary"
+              variant="brand"
               size="lg"
               loading={loading}
               className="w-full mt-1"

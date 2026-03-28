@@ -2,7 +2,7 @@ import React from 'react'
 import { Loader2 } from 'lucide-react'
 
 interface NodoButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  variant?: 'primary' | 'brand' | 'secondary' | 'ghost' | 'danger'
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
   icon?: React.ReactNode
@@ -34,6 +34,14 @@ export function NodoButton({
       bg-[#C8F135]
       hover:bg-[#D4F53C] active:bg-[#BBE02A]
       active:scale-[0.98]
+      disabled:opacity-40 disabled:cursor-not-allowed
+    `,
+    brand: `
+      text-white font-bold
+      bg-gradient-to-r from-[#E040A0] via-[#C026A8] to-[#8B22E8]
+      hover:opacity-90 active:opacity-80
+      active:scale-[0.98]
+      shadow-[0_4px_14px_rgba(192,38,168,0.3)]
       disabled:opacity-40 disabled:cursor-not-allowed
     `,
     secondary: `

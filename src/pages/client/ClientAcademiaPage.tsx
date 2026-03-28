@@ -122,7 +122,7 @@ function TutorialCard({
   const platform = tutorial.video_url ? getVideoPlatform(tutorial.video_url) : null
 
   return (
-    <div className="rounded-2xl border border-[#1E1C2A] bg-[#12101A] overflow-hidden group hover:border-[#C026A8]/30 transition-all hover:translate-y-[-2px]">
+    <div className="rounded-2xl border border-[#E8E6F0] bg-white overflow-hidden group hover:border-[#C026A8]/30 transition-all hover:translate-y-[-2px]">
       {/* Thumbnail */}
       <div className="relative h-40 overflow-hidden">
         {thumb ? (
@@ -171,7 +171,7 @@ function TutorialCard({
 
       {/* Body */}
       <div className="p-4">
-        <p className="text-sm font-bold text-white leading-snug mb-1.5 line-clamp-2">{tutorial.title}</p>
+        <p className="text-sm font-bold text-[#1A1827] leading-snug mb-1.5 line-clamp-2">{tutorial.title}</p>
         <p className="text-xs text-[#6B6B80] leading-relaxed line-clamp-2">{tutorial.description}</p>
         <button
           onClick={() => onPlay(tutorial)}
@@ -228,8 +228,8 @@ function VideoModal({ tutorial, onClose }: { tutorial: ClientTutorial; onClose: 
         ) : (
           /* Enlace externo — para URLs que no son YouTube/Loom/Vimeo */
           <div className="rounded-2xl bg-[#12101A] border border-[#1E1C2A] p-12 text-center">
-            <BookOpen size={40} className="text-white/20 mx-auto mb-4" />
-            <p className="text-sm text-white/50 mb-4">Este tutorial está disponible en un enlace externo.</p>
+            <BookOpen size={40} className="text-[#BBBBCC] mx-auto mb-4" />
+            <p className="text-sm text-[#6B6B80] mb-4">Este tutorial está disponible en un enlace externo.</p>
             {tutorial.video_url && (
               <a
                 href={tutorial.video_url}
@@ -322,7 +322,7 @@ export function ClientAcademiaPage() {
           <GraduationCap size={18} className="text-amber-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Guías de uso</h1>
+          <h1 className="text-xl font-bold text-[#1A1827]">Guías de uso</h1>
           <p className="text-sm text-[#6B6B80]">Todo lo que necesitas saber para usar tu servicio sin complicaciones</p>
         </div>
       </div>
@@ -349,7 +349,7 @@ export function ClientAcademiaPage() {
           className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all border ${
             activeCategory === 'all'
               ? 'bg-[#C026A8]/15 text-[#C026A8] border-[#C026A8]/30'
-              : 'text-[#6B6B80] border-transparent hover:text-white hover:bg-white/5'
+              : 'text-[#6B6B80] border-transparent hover:text-[#1A1827] hover:bg-[#F4F3F9]'
           }`}
         >Todos</button>
         {activeCategories.map((cat) => {
@@ -362,7 +362,7 @@ export function ClientAcademiaPage() {
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all border ${
                 activeCategory === cat
                   ? 'bg-[#C026A8]/15 text-[#C026A8] border-[#C026A8]/30'
-                  : 'text-[#6B6B80] border-transparent hover:text-white hover:bg-white/5'
+                  : 'text-[#6B6B80] border-transparent hover:text-[#1A1827] hover:bg-[#F4F3F9]'
               }`}
             >
               <CatIcon size={11} /> {TUTORIAL_CATEGORY_LABELS[cat]}
@@ -373,10 +373,10 @@ export function ClientAcademiaPage() {
 
       {/* ── Grid de tutoriales ────────────────────────────────────────────── */}
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-[#1E1C2A] bg-[#12101A] p-12 text-center">
-          <GraduationCap size={36} className="text-white/20 mx-auto mb-3" />
-          <p className="text-sm text-white/50 font-medium">Sin tutoriales en esta categoría</p>
-          <p className="text-xs text-white/30 mt-1">Pronto añadiremos más contenido aquí.</p>
+        <div className="rounded-2xl border border-[#1E1C2A] bg-[#F7F6FC] p-12 text-center">
+          <GraduationCap size={36} className="text-[#BBBBCC] mx-auto mb-3" />
+          <p className="text-sm text-[#6B6B80] font-medium">Sin tutoriales en esta categoría</p>
+          <p className="text-xs text-[#9999AA] mt-1">Pronto añadiremos más contenido aquí.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

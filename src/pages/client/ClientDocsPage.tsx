@@ -212,16 +212,16 @@ export function ClientDocsPage() {
           <Folder size={18} className="text-violet-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Mis Documentos</h1>
+          <h1 className="text-xl font-bold text-[#1A1827]">Mis Documentos</h1>
           <p className="text-sm text-[#6B6B80]">Archivos y entregables de tu proyecto</p>
         </div>
       </div>
 
       {isEmpty ? (
-        <div className="rounded-2xl border border-[#1E1C2A] bg-[#12101A] p-12 text-center">
-          <Folder size={36} className="text-white/20 mx-auto mb-3" />
-          <p className="text-sm text-white/50 font-medium">Sin documentos aún</p>
-          <p className="text-xs text-white/30 mt-1 max-w-xs mx-auto">
+        <div className="rounded-2xl border border-[#E8E6F0] bg-[#F7F6FC] p-12 text-center">
+          <Folder size={36} className="text-[#BBBBCC] mx-auto mb-3" />
+          <p className="text-sm text-[#6B6B80] font-medium">Sin documentos aún</p>
+          <p className="text-xs text-[#9999AA] mt-1 max-w-xs mx-auto">
             El equipo de NODO ONE compartirá aquí tus documentos y entregables.
           </p>
         </div>
@@ -232,8 +232,8 @@ export function ClientDocsPage() {
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1 h-4 rounded-full bg-gradient-to-b from-[#E040A0] to-[#8B22E8]" />
-                <h2 className="text-sm font-bold text-white">Documentos de NODO</h2>
-                <span className="text-xs text-[#6B6B80] bg-[#12101A] border border-[#1E1C2A] px-2 py-0.5 rounded-full">
+                <h2 className="text-sm font-bold text-[#1A1827]">Documentos de NODO</h2>
+                <span className="text-xs text-[#6B6B80] bg-[#FFFFFF] border border-[#E8E6F0] px-2 py-0.5 rounded-full">
                   {resources.length}
                 </span>
               </div>
@@ -241,13 +241,13 @@ export function ClientDocsPage() {
                 {resources.map(res => (
                   <div
                     key={res.id}
-                    className="rounded-xl border border-[#1E1C2A] bg-[#12101A] p-4 flex items-start gap-3"
+                    className="rounded-xl border border-[#E8E6F0] bg-white p-4 flex items-start gap-3"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-[#1A1825] border border-[#1E1C2A] flex items-center justify-center flex-shrink-0">
+                    <div className="w-9 h-9 rounded-lg bg-[#F4F3F9] border border-[#E8E6F0] flex items-center justify-center flex-shrink-0">
                       {resourceCategoryIcon(res.category)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white">{res.title}</p>
+                      <p className="text-sm font-semibold text-[#1A1827]">{res.title}</p>
                       {res.description && (
                         <p className="text-xs text-[#6B6B80] mt-0.5">{res.description}</p>
                       )}
@@ -257,7 +257,7 @@ export function ClientDocsPage() {
                     </div>
                     <button
                       onClick={() => openResource(res)}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1825] border border-[#1E1C2A] text-xs text-white/70 hover:text-white hover:border-[#C026A8]/40 transition-all"
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F4F3F9] border border-[#E8E6F0] text-xs text-[#4D4B60] hover:text-[#1A1827] hover:border-[#C026A8]/40 transition-all"
                     >
                       {res.external_url ? <ExternalLink size={12} /> : <Download size={12} />}
                       {res.external_url ? 'Abrir' : 'Descargar'}
@@ -273,8 +273,8 @@ export function ClientDocsPage() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1 h-4 rounded-full bg-gradient-to-b from-violet-400 to-violet-600" />
-                <h2 className="text-sm font-bold text-white">Entregables del proyecto</h2>
-                <span className="text-xs text-[#6B6B80] bg-[#12101A] border border-[#1E1C2A] px-2 py-0.5 rounded-full">
+                <h2 className="text-sm font-bold text-[#1A1827]">Entregables del proyecto</h2>
+                <span className="text-xs text-[#6B6B80] bg-white border border-[#E8E6F0] px-2 py-0.5 rounded-full">
                   {deliverables.length}
                 </span>
               </div>
@@ -283,10 +283,10 @@ export function ClientDocsPage() {
                   const items = byPhase.get(phase) || []
                   const expanded = expandedPhases.has(phase)
                   return (
-                    <div key={phase} className="rounded-xl border border-[#1E1C2A] bg-[#12101A] overflow-hidden">
+                    <div key={phase} className="rounded-xl border border-[#E8E6F0] bg-white overflow-hidden">
                       <button
                         onClick={() => togglePhase(phase)}
-                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/3 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#F4F3F9] transition-colors"
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-bold text-[#C026A8] bg-[#C026A8]/10 border border-[#C026A8]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -297,14 +297,14 @@ export function ClientDocsPage() {
                         {expanded ? <ChevronUp size={14} className="text-[#6B6B80]" /> : <ChevronDown size={14} className="text-[#6B6B80]" />}
                       </button>
                       {expanded && (
-                        <div className="border-t border-[#1E1C2A] divide-y divide-[#1E1C2A]">
+                        <div className="border-t border-[#E8E6F0] divide-y divide-[#E8E6F0]">
                           {items.map(item => (
                             <div key={item.id} className="flex items-start gap-3 px-4 py-3">
-                              <div className="w-7 h-7 rounded-lg bg-[#1A1825] border border-[#1E1C2A] flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <div className="w-7 h-7 rounded-lg bg-[#F4F3F9] border border-[#E8E6F0] flex items-center justify-center flex-shrink-0 mt-0.5">
                                 {deliverableIcon(item.type)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-white">{item.title}</p>
+                                <p className="text-sm font-medium text-[#1A1827]">{item.title}</p>
                                 {item.description && (
                                   <p className="text-xs text-[#6B6B80] mt-0.5">{item.description}</p>
                                 )}
@@ -315,7 +315,7 @@ export function ClientDocsPage() {
                               {(item.file_path || item.external_url) && (
                                 <button
                                   onClick={() => openDeliverable(item)}
-                                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1825] border border-[#1E1C2A] text-xs text-white/70 hover:text-white hover:border-[#C026A8]/40 transition-all"
+                                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F4F3F9] border border-[#E8E6F0] text-xs text-[#4D4B60] hover:text-[#1A1827] hover:border-[#C026A8]/40 transition-all"
                                 >
                                   {item.external_url ? <ExternalLink size={12} /> : <Download size={12} />}
                                   {item.external_url ? 'Abrir' : 'Descargar'}

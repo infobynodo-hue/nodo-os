@@ -74,13 +74,13 @@ function CredentialCard({ cred }: { cred: ClientCredential }) {
   }
 
   return (
-    <div className="rounded-2xl border border-[#1E1C2A] bg-[#12101A] overflow-hidden">
+    <div className="rounded-2xl border border-[#E8E6F0] bg-white overflow-hidden">
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#E040A0]/10 to-[#8B22E8]/10 border border-[#C026A8]/20 flex items-center justify-center flex-shrink-0">
           <PlatformIcon size={18} className="text-[#C026A8]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white">{cred.label}</p>
+          <p className="text-sm font-bold text-[#1A1827]">{cred.label}</p>
           {cred.url && (
             <a href={cred.url} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] text-[#C026A8] hover:text-[#E040A0] transition-colors mt-0.5"
@@ -92,29 +92,29 @@ function CredentialCard({ cred }: { cred: ClientCredential }) {
           )}
         </div>
       </div>
-      <div className="border-t border-[#1E1C2A]" />
+      <div className="border-t border-[#E8E6F0]" />
       <div className="px-4 py-3 space-y-3">
         {cred.username && (
           <div>
             <p className="text-[10px] font-semibold text-[#6B6B80] uppercase tracking-wider mb-1">Usuario / Teléfono</p>
-            <p className="text-sm font-mono text-white/90 bg-[#1A1825] border border-[#1E1C2A] rounded-lg px-3 py-2">{cred.username}</p>
+            <p className="text-sm font-mono text-[#2D2B3A] bg-[#F4F3F9] border border-[#E8E6F0] rounded-lg px-3 py-2">{cred.username}</p>
           </div>
         )}
         {cred.password && (
           <div>
             <p className="text-[10px] font-semibold text-[#6B6B80] uppercase tracking-wider mb-1">Contraseña</p>
             <div className="flex gap-2">
-              <div className="flex-1 flex items-center bg-[#1A1825] border border-[#1E1C2A] rounded-lg px-3 py-2">
-                <p className="text-sm font-mono text-white/90 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+              <div className="flex-1 flex items-center bg-[#F4F3F9] border border-[#E8E6F0] rounded-lg px-3 py-2">
+                <p className="text-sm font-mono text-[#2D2B3A] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                   {showPassword ? cred.password : '••••••••'}
                 </p>
               </div>
               <button onClick={() => setShowPassword(v => !v)}
-                className="w-9 h-9 rounded-lg bg-[#1A1825] border border-[#1E1C2A] flex items-center justify-center text-[#6B6B80] hover:text-white hover:border-[#C026A8]/40 transition-all flex-shrink-0">
+                className="w-9 h-9 rounded-lg bg-[#F4F3F9] border border-[#E8E6F0] flex items-center justify-center text-[#6B6B80] hover:text-[#1A1827] hover:border-[#C026A8]/40 transition-all flex-shrink-0">
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
               <button onClick={copyPassword}
-                className="w-9 h-9 rounded-lg bg-[#1A1825] border border-[#1E1C2A] flex items-center justify-center text-[#6B6B80] hover:text-white hover:border-[#C026A8]/40 transition-all flex-shrink-0">
+                className="w-9 h-9 rounded-lg bg-[#F4F3F9] border border-[#E8E6F0] flex items-center justify-center text-[#6B6B80] hover:text-[#1A1827] hover:border-[#C026A8]/40 transition-all flex-shrink-0">
                 {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
               </button>
             </div>
@@ -124,7 +124,7 @@ function CredentialCard({ cred }: { cred: ClientCredential }) {
           <div>
             <p className="text-[10px] font-semibold text-[#6B6B80] uppercase tracking-wider mb-1">Enlace</p>
             <a href={cred.url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-[#C026A8] hover:text-[#E040A0] transition-colors font-medium bg-[#1A1825] border border-[#1E1C2A] rounded-lg px-3 py-2">
+              className="flex items-center gap-2 text-sm text-[#C026A8] hover:text-[#E040A0] transition-colors font-medium bg-[#F4F3F9] border border-[#E8E6F0] rounded-lg px-3 py-2">
               <Globe size={13} />
               <span className="flex-1 truncate">{cred.url}</span>
               <ExternalLink size={12} />
@@ -251,7 +251,7 @@ export function ClientProjectPage() {
             <FolderKanban size={17} className="text-[#C026A8]" />
           </div>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-white">Mi Proyecto</h1>
+            <h1 className="text-xl font-bold text-[#1A1827]">Mi Proyecto</h1>
             {project && (
               <div className="flex items-center gap-2 mt-0.5">
                 <NodoBadge status={project.status} size="sm" />
@@ -262,15 +262,15 @@ export function ClientProjectPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-[#1E1C2A]">
+        <div className="flex gap-1 border-b border-[#E8E6F0]">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px ${
                 tab === t.id
-                  ? 'text-white border-[#C026A8]'
-                  : 'text-[#6B6B80] border-transparent hover:text-white'
+                  ? 'text-[#1A1827] border-[#C026A8]'
+                  : 'text-[#6B6B80] border-transparent hover:text-[#1A1827]'
               }`}
             >
               <t.icon size={14} />
@@ -290,14 +290,14 @@ export function ClientProjectPage() {
               <NodoCard dark className="mb-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Progreso general</p>
+                    <p className="text-sm font-semibold text-[#1A1827]">Progreso general</p>
                     {totalTasks > 0 && (
-                      <p className="text-xs text-white/50 mt-0.5">{completedTasks} de {totalTasks} tareas completadas</p>
+                      <p className="text-xs text-[#6B6B80] mt-0.5">{completedTasks} de {totalTasks} tareas completadas</p>
                     )}
                   </div>
                   <span className="text-2xl font-bold gradient-text">{project.progress_pct}%</span>
                 </div>
-                <NodoProgressBar value={project.progress_pct} size="md" dark />
+                <NodoProgressBar value={project.progress_pct} size="md" />
               </NodoCard>
             )}
 
@@ -322,7 +322,7 @@ export function ClientProjectPage() {
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                         phase.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400'
                         : phase.status === 'in_progress' ? 'bg-[#C026A8]/10 text-[#C026A8]'
-                        : 'bg-[#1A1825] text-[#6B6B80]'
+                        : 'bg-[#EEECF8] text-[#6B6B80]'
                       }`}>
                         {phase.status === 'completed' ? <CheckCircle size={16} />
                           : phase.status === 'in_progress' ? <Clock size={16} />
@@ -331,7 +331,7 @@ export function ClientProjectPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className={`text-sm font-semibold ${isFuture ? 'text-[#6B6B80]' : 'text-white'}`}>
+                          <p className={`text-sm font-semibold ${isFuture ? 'text-[#6B6B80]' : 'text-[#1A1827]'}`}>
                             Fase {phase.phase_number}: {phase.phase_name}
                           </p>
                           {isCurrent && <NodoBadge status="in_progress" size="sm" label="Actual" />}
@@ -351,8 +351,8 @@ export function ClientProjectPage() {
                     </button>
 
                     {isExpanded && phaseTasks.length > 0 && (
-                      <div className="border-t border-white/8 px-4 pb-3">
-                        <p className="text-xs text-white/40 py-2.5 font-medium uppercase tracking-wider">Tus tareas:</p>
+                      <div className="border-t border-[#EEEDF5] px-4 pb-3">
+                        <p className="text-xs text-[#9999AA] py-2.5 font-medium uppercase tracking-wider">Tus tareas:</p>
                         <div className="space-y-2.5">
                           {phaseTasks.map((task) => (
                             <div key={task.id} className="flex items-start gap-3">
@@ -370,7 +370,7 @@ export function ClientProjectPage() {
                                   </svg>
                                 )}
                               </button>
-                              <p className={`text-sm leading-snug ${task.is_completed ? 'line-through text-[#6B6B80]' : 'text-[#E8E6EE]'}`}>
+                              <p className={`text-sm leading-snug ${task.is_completed ? 'line-through text-[#6B6B80]' : 'text-[#2D2B3A]'}`}>
                                 {task.title}
                               </p>
                             </div>
@@ -379,8 +379,8 @@ export function ClientProjectPage() {
                       </div>
                     )}
                     {isExpanded && phaseTasks.length === 0 && (
-                      <div className="border-t border-white/8 px-4 py-3">
-                        <p className="text-xs text-white/40">No hay tareas asignadas a ti en esta fase.</p>
+                      <div className="border-t border-[#EEEDF5] px-4 py-3">
+                        <p className="text-xs text-[#9999AA]">No hay tareas asignadas a ti en esta fase.</p>
                       </div>
                     )}
                   </NodoCard>
@@ -394,10 +394,10 @@ export function ClientProjectPage() {
         {tab === 'bot' && (
           <>
             {/* Onboarding progress */}
-            <div className="rounded-2xl border border-[#1E1C2E] bg-[#111019] p-4 mb-5">
+            <div className="rounded-2xl border border-[#E8E6F0] bg-white p-4 mb-5">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-sm font-semibold text-white">Completitud del Onboarding</p>
+                  <p className="text-sm font-semibold text-[#1A1827]">Completitud del Onboarding</p>
                   <p className="text-xs text-[#6B6B80] mt-0.5">{completedOnboarding} de {onboardingFields.length} campos configurados</p>
                 </div>
                 <span className="text-2xl font-bold gradient-text">{completionPct}%</span>
@@ -409,7 +409,7 @@ export function ClientProjectPage() {
                     {field.complete
                       ? <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />
                       : <XCircle size={13} className="text-[#6B6B80] flex-shrink-0" />}
-                    <span className={`text-xs ${field.complete ? 'text-white/80' : 'text-[#6B6B80]'}`}>{field.label}</span>
+                    <span className={`text-xs ${field.complete ? 'text-[#2D2B3A]' : 'text-[#6B6B80]'}`}>{field.label}</span>
                   </div>
                 ))}
               </div>
@@ -426,9 +426,9 @@ export function ClientProjectPage() {
 
             {botCategories.length === 0 ? (
               <NodoCard dark className="text-center py-12">
-                <Brain size={32} className="text-white/30 mx-auto mb-3" />
-                <p className="text-sm text-white/50">La base de conocimiento aún está siendo configurada.</p>
-                <p className="text-xs text-white/30 mt-1">Vuelve más adelante cuando tu proyecto esté más avanzado.</p>
+                <Brain size={32} className="text-[#BBBBCC] mx-auto mb-3" />
+                <p className="text-sm text-[#6B6B80]">La base de conocimiento aún está siendo configurada.</p>
+                <p className="text-xs text-[#9999AA] mt-1">Vuelve más adelante cuando tu proyecto esté más avanzado.</p>
               </NodoCard>
             ) : (
               <>
@@ -439,7 +439,7 @@ export function ClientProjectPage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                         activeCategory === null
                           ? 'bg-[#C026A8]/15 text-[#C026A8] border-[#C026A8]/30'
-                          : 'text-[#6B6B80] hover:text-white hover:bg-white/5 border-transparent'
+                          : 'text-[#6B6B80] hover:text-[#1A1827] hover:bg-[#F0EFF7] border-transparent'
                       }`}
                     >Todo</button>
                     {botCategories.map((cat) => (
@@ -447,7 +447,7 @@ export function ClientProjectPage() {
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                           activeCategory === cat
                             ? 'bg-[#C026A8]/15 text-[#C026A8] border-[#C026A8]/30'
-                            : 'text-[#6B6B80] hover:text-white hover:bg-white/5 border-transparent'
+                            : 'text-[#6B6B80] hover:text-[#1A1827] hover:bg-[#F0EFF7] border-transparent'
                         }`}
                       >
                         {KNOWLEDGE_CATEGORY_LABELS[cat]}
@@ -467,8 +467,8 @@ export function ClientProjectPage() {
                       <div className="space-y-2">
                         {knowledge[cat]!.map((item) => (
                           <NodoCard key={item.id} dark padding="md">
-                            <p className="text-sm font-semibold text-white mb-1.5">{item.title}</p>
-                            <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap">{item.content}</p>
+                            <p className="text-sm font-semibold text-[#1A1827] mb-1.5">{item.title}</p>
+                            <p className="text-sm text-[#4D4B60] leading-relaxed whitespace-pre-wrap">{item.content}</p>
                           </NodoCard>
                         ))}
                       </div>
@@ -494,10 +494,10 @@ export function ClientProjectPage() {
             </div>
 
             {credentials.length === 0 ? (
-              <div className="rounded-2xl border border-[#1E1C2A] bg-[#12101A] p-12 text-center">
-                <Key size={36} className="text-white/20 mx-auto mb-3" />
-                <p className="text-sm text-white/50 font-medium">Sin credenciales aún</p>
-                <p className="text-xs text-white/30 mt-1 max-w-xs mx-auto">
+              <div className="rounded-2xl border border-[#E8E6F0] bg-white p-12 text-center">
+                <Key size={36} className="text-[#BBBBCC] mx-auto mb-3" />
+                <p className="text-sm text-[#6B6B80] font-medium">Sin credenciales aún</p>
+                <p className="text-xs text-[#9999AA] mt-1 max-w-xs mx-auto">
                   El equipo de NODO ONE compartirá aquí los accesos a tus plataformas cuando estén listos.
                 </p>
               </div>

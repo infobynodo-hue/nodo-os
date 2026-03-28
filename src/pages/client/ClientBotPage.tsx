@@ -94,16 +94,16 @@ export function ClientBotPage() {
           <Brain size={18} className="text-[#C026A8]" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Base del Bot</h1>
+          <h1 className="text-xl font-bold text-[#1A1827]">Base del Bot</h1>
           <p className="text-sm text-[#6B6B80]">Lo que sabe tu empleado digital</p>
         </div>
       </div>
 
       {/* Onboarding Progress Card */}
-      <div className="rounded-2xl border border-[#1E1C2E] bg-[#111019] p-4 mb-5">
+      <div className="rounded-2xl border border-[#E8E6F0] bg-white p-4 mb-5">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-sm font-semibold text-white">Completitud del Onboarding</p>
+            <p className="text-sm font-semibold text-[#1A1827]">Completitud del Onboarding</p>
             <p className="text-xs text-[#6B6B80] mt-0.5">{completedCount} de {onboardingFields.length} campos configurados</p>
           </div>
           <span className="text-2xl font-bold gradient-text">{completionPct}%</span>
@@ -119,7 +119,7 @@ export function ClientBotPage() {
               ) : (
                 <XCircle size={13} className="text-[#6B6B80] flex-shrink-0" />
               )}
-              <span className={`text-xs ${field.complete ? 'text-white/80' : 'text-[#6B6B80]'}`}>
+              <span className={`text-xs ${field.complete ? 'text-[#2D2B3A]' : 'text-[#6B6B80]'}`}>
                 {field.label}
               </span>
             </div>
@@ -141,9 +141,9 @@ export function ClientBotPage() {
 
       {categories.length === 0 ? (
         <NodoCard dark className="text-center py-12">
-          <Brain size={32} className="text-white/30 mx-auto mb-3" />
-          <p className="text-sm text-white/50">La base de conocimiento aún está siendo configurada.</p>
-          <p className="text-xs text-white/30 mt-1">Vuelve más adelante cuando tu proyecto esté más avanzado.</p>
+          <Brain size={32} className="text-[#BBBBCC] mx-auto mb-3" />
+          <p className="text-sm text-[#6B6B80]">La base de conocimiento aún está siendo configurada.</p>
+          <p className="text-xs text-[#9999AA] mt-1">Vuelve más adelante cuando tu proyecto esté más avanzado.</p>
         </NodoCard>
       ) : (
         <>
@@ -155,7 +155,7 @@ export function ClientBotPage() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   activeCategory === null
                     ? 'bg-[#C026A8]/15 text-[#C026A8] border border-[#C026A8]/30'
-                    : 'text-[#6B6B80] hover:text-white hover:bg-white/5 border border-transparent'
+                    : 'text-[#6B6B80] hover:text-[#1A1827] hover:bg-[#F4F3F9] border border-transparent'
                 }`}
               >
                 Todo
@@ -167,7 +167,7 @@ export function ClientBotPage() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                     activeCategory === cat
                       ? 'bg-[#C026A8]/15 text-[#C026A8] border border-[#C026A8]/30'
-                      : 'text-[#6B6B80] hover:text-white hover:bg-white/5 border border-transparent'
+                      : 'text-[#6B6B80] hover:text-[#1A1827] hover:bg-[#F4F3F9] border border-transparent'
                   }`}
                 >
                   {KNOWLEDGE_CATEGORY_LABELS[cat]}
@@ -188,8 +188,8 @@ export function ClientBotPage() {
                 <div className="space-y-2">
                   {knowledge[cat]!.map((item) => (
                     <NodoCard key={item.id} dark padding="md">
-                      <p className="text-sm font-semibold text-white mb-1.5">{item.title}</p>
-                      <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap">{item.content}</p>
+                      <p className="text-sm font-semibold text-[#1A1827] mb-1.5">{item.title}</p>
+                      <p className="text-sm text-[#4D4B60] leading-relaxed whitespace-pre-wrap">{item.content}</p>
                     </NodoCard>
                   ))}
                 </div>

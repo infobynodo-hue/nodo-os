@@ -28,7 +28,7 @@ export function NodoCard({
 
   if (dark) {
     return (
-      <div className={`rounded-2xl ${paddings[padding]} bg-[#1E2433] ${className}`} {...props}>
+      <div className={`rounded-2xl ${paddings[padding]} bg-[#F4F3F9] border border-[#E8E6F0] ${className}`} {...props}>
         {children}
       </div>
     )

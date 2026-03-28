@@ -161,11 +161,11 @@ export function ClientBillingPage() {
   return (
     <div className="flex flex-col h-full fade-in">
       {/* ── Header stats ── */}
-      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4 border-b border-[#1E1C2A]">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4 border-b border-[#E8E6F0]">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-bold text-white">Facturación</h1>
+          <h1 className="text-lg font-bold text-[#1A1827]">Facturación</h1>
           {project && (
-            <span className="text-xs text-[#6B6B80] bg-[#12101A] px-3 py-1 rounded-full border border-[#1E1C2A]">
+            <span className="text-xs text-[#6B6B80] bg-white px-3 py-1 rounded-full border border-[#E8E6F0]">
               Contrato {project.duration_months} meses
             </span>
           )}
@@ -173,7 +173,7 @@ export function ClientBillingPage() {
 
         <div className="grid grid-cols-3 gap-3">
           {/* Vencido */}
-          <div className="bg-[#12101A] border border-[#1E1C2A] rounded-xl p-3 md:p-4">
+          <div className="bg-white border border-[#E8E6F0] rounded-xl p-3 md:p-4">
             <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Vencido</p>
             <p className="text-xl md:text-2xl font-bold text-red-400">
               {totalOverdue > 0 ? `€${totalOverdue.toLocaleString()}` : '—'}
@@ -185,7 +185,7 @@ export function ClientBillingPage() {
           </div>
 
           {/* Pendiente */}
-          <div className="bg-[#12101A] border border-[#1E1C2A] rounded-xl p-3 md:p-4">
+          <div className="bg-white border border-[#E8E6F0] rounded-xl p-3 md:p-4">
             <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Por pagar</p>
             <p className="text-xl md:text-2xl font-bold text-amber-400">
               {totalPending > 0 ? `€${totalPending.toLocaleString()}` : '—'}
@@ -197,7 +197,7 @@ export function ClientBillingPage() {
           </div>
 
           {/* Pagado */}
-          <div className="bg-[#12101A] border border-[#1E1C2A] rounded-xl p-3 md:p-4">
+          <div className="bg-white border border-[#E8E6F0] rounded-xl p-3 md:p-4">
             <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Pagado</p>
             <p className="text-xl md:text-2xl font-bold text-emerald-400">
               {totalPaid > 0 ? `€${totalPaid.toLocaleString()}` : '—'}
@@ -230,7 +230,7 @@ export function ClientBillingPage() {
                       : 'bg-[#C026A8]'
                   }`} />
                   <p className={`text-[9px] text-center mt-1 transition-colors ${
-                    r.id === selected?.id ? 'text-white' : 'text-[#6B6B80]'
+                    r.id === selected?.id ? 'text-[#C026A8] font-semibold' : 'text-[#6B6B80]'
                   }`}>
                     M{r.period_month}
                   </p>
@@ -244,9 +244,9 @@ export function ClientBillingPage() {
       {/* ── Tabs + list / detail ── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: list */}
-        <div className="flex flex-col w-full md:w-[55%] border-r border-[#1E1C2A] overflow-hidden">
+        <div className="flex flex-col w-full md:w-[55%] border-r border-[#E8E6F0] overflow-hidden">
           {/* Tabs */}
-          <div className="flex gap-1 px-4 pt-3 pb-2 border-b border-[#1E1C2A]">
+          <div className="flex gap-1 px-4 pt-3 pb-2 border-b border-[#E8E6F0]">
             {tabs.map(t => (
               <button
                 key={t.key}
@@ -254,13 +254,13 @@ export function ClientBillingPage() {
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   activeTab === t.key
                     ? 'bg-gradient-to-r from-[#E040A0] to-[#8B22E8] text-white'
-                    : 'text-[#6B6B80] hover:text-white hover:bg-white/5'
+                    : 'text-[#6B6B80] hover:text-[#1A1827] hover:bg-[#F4F3F9]'
                 }`}
               >
                 {t.label}
                 {t.count > 0 && (
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                    activeTab === t.key ? 'bg-white/20' : 'bg-[#1E1C2A]'
+                    activeTab === t.key ? 'bg-white/20' : 'bg-[#E8E6F0]'
                   }`}>
                     {t.count}
                   </span>
@@ -278,7 +278,7 @@ export function ClientBillingPage() {
                 <button
                   key={record.id}
                   onClick={() => setSelected(record)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 border-b border-[#1E1C2A] text-left transition-colors hover:bg-white/3 ${
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 border-b border-[#E8E6F0] text-left transition-colors hover:bg-[#F4F3F9] ${
                     selected?.id === record.id ? 'bg-[#C026A8]/5 border-l-2 border-l-[#C026A8]' : ''
                   }`}
                 >
@@ -295,7 +295,7 @@ export function ClientBillingPage() {
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-[#1A1827]">
                       Mensualidad #{String(record.period_month).padStart(3, '0')}
                     </p>
                     <p className="text-xs text-[#6B6B80] truncate">
@@ -306,7 +306,7 @@ export function ClientBillingPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold font-mono text-white">€{record.amount.toLocaleString()}</p>
+                    <p className="text-sm font-bold font-mono text-[#1A1827]">€{record.amount.toLocaleString()}</p>
                     <p className={`text-[10px] mt-0.5 ${
                       record.status === 'paid' ? 'text-emerald-400'
                       : record.status === 'overdue' ? 'text-red-400'
@@ -329,7 +329,7 @@ export function ClientBillingPage() {
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <p className="text-xs text-[#6B6B80] mb-1">Detalle de factura</p>
-                  <p className="text-2xl font-bold font-mono text-white">
+                  <p className="text-2xl font-bold font-mono text-[#1A1827]">
                     #00{selected.period_month.toString().padStart(2, '0')}
                   </p>
                   <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full mt-2 font-medium ${
@@ -349,19 +349,19 @@ export function ClientBillingPage() {
                   <button
                     onClick={() => downloadInvoice(selected, project, user?.email || 'Cliente')}
                     title="Descargar factura"
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#12101A] border border-[#1E1C2A] text-[#6B6B80] hover:text-white hover:border-[#C026A8]/40 transition-all"
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white border border-[#E8E6F0] text-[#6B6B80] hover:text-[#1A1827] hover:border-[#C026A8]/40 transition-all"
                   >
                     <Download size={13} />
                     Descargar
                   </button>
-                  <button className="w-8 h-8 rounded-lg bg-[#12101A] border border-[#1E1C2A] flex items-center justify-center text-[#6B6B80] hover:text-white transition-colors">
+                  <button className="w-8 h-8 rounded-lg bg-white border border-[#E8E6F0] flex items-center justify-center text-[#6B6B80] hover:text-[#1A1827] transition-colors">
                     <ArrowUpRight size={14} />
                   </button>
                 </div>
               </div>
 
               {/* Amount hero */}
-              <div className="bg-[#12101A] border border-[#1E1C2A] rounded-xl p-5 mb-4">
+              <div className="bg-white border border-[#E8E6F0] rounded-xl p-5 mb-4">
                 <p className="text-xs text-[#6B6B80] mb-2">Importe</p>
                 <p className="text-4xl font-bold font-mono gradient-text">
                   €{selected.amount.toLocaleString()}
@@ -374,14 +374,14 @@ export function ClientBillingPage() {
               </div>
 
               {/* Detail rows */}
-              <div className="bg-[#12101A] border border-[#1E1C2A] rounded-xl divide-y divide-[#1E1C2A] mb-4">
+              <div className="bg-white border border-[#E8E6F0] rounded-xl divide-y divide-[#E8E6F0] mb-4">
                 <div className="flex justify-between items-center px-4 py-3">
                   <p className="text-xs text-[#6B6B80]">Concepto</p>
-                  <p className="text-xs font-medium text-white">Mensualidad {selected.period_month}</p>
+                  <p className="text-xs font-medium text-[#1A1827]">Mensualidad {selected.period_month}</p>
                 </div>
                 <div className="flex justify-between items-center px-4 py-3">
                   <p className="text-xs text-[#6B6B80]">Fecha de vencimiento</p>
-                  <p className="text-xs font-medium text-white">
+                  <p className="text-xs font-medium text-[#1A1827]">
                     {new Date(selected.due_date).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
@@ -396,7 +396,7 @@ export function ClientBillingPage() {
                 {project && (
                   <div className="flex justify-between items-center px-4 py-3">
                     <p className="text-xs text-[#6B6B80]">Total contrato</p>
-                    <p className="text-xs font-medium text-white">€{project.total_price.toLocaleString()}</p>
+                    <p className="text-xs font-medium text-[#1A1827]">€{project.total_price.toLocaleString()}</p>
                   </div>
                 )}
               </div>

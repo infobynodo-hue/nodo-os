@@ -14,7 +14,7 @@ function renderMarkdownLine(line: string, key: number) {
     <span key={key}>
       {parts.map((part, i) =>
         part.startsWith('**') && part.endsWith('**')
-          ? <strong key={i} className="font-semibold text-white">{part.slice(2, -2)}</strong>
+          ? <strong key={i} className="font-semibold text-[#1A1827]">{part.slice(2, -2)}</strong>
           : part
       )}
     </span>
@@ -24,10 +24,10 @@ function renderMarkdownLine(line: string, key: number) {
 function ChatMarkdown({ content }: { content: string }) {
   const lines = content.split('\n')
   return (
-    <div className="text-sm leading-relaxed text-white/85">
+    <div className="text-sm leading-relaxed text-[#2D2B3A]">
       {lines.map((line, i) => {
         if (line.trim() === '---') {
-          return <hr key={i} className="border-white/10 my-2" />
+          return <hr key={i} className="border-[#E8E6F0] my-2" />
         }
         if (line === '') {
           return <div key={i} className="h-2" />
@@ -397,7 +397,7 @@ export function ClientChatPage() {
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-57px)]">
       {/* Plug selector — horizontal scrollable pills grouped by category */}
-      <div className="flex-shrink-0 px-4 pt-4 pb-2 border-b border-[#1E1C2A]">
+      <div className="flex-shrink-0 px-4 pt-4 pb-2 border-b border-[#E8E6F0]">
         <div className="space-y-2">
           {/* Gestión del agente */}
           <div>
@@ -417,8 +417,8 @@ export function ClientChatPage() {
                       isActive
                         ? 'bg-[#C026A8] text-white'
                         : isEnabled
-                        ? 'bg-[#1A1825] border border-[#1E1C2A] text-white/70 hover:border-[#C026A8]/40 hover:text-white'
-                        : 'bg-[#1A1825] border border-[#1E1C2A] text-white/30 opacity-40 cursor-not-allowed'
+                        ? 'bg-[#F4F3F9] border border-[#E8E6F0] text-[#4D4B60] hover:border-[#C026A8]/40 hover:text-[#1A1827]'
+                        : 'bg-[#F4F3F9] border border-[#E8E6F0] text-[#9999AA] opacity-40 cursor-not-allowed'
                     }`}
                   >
                     <span>{plug.icon}</span>
@@ -447,8 +447,8 @@ export function ClientChatPage() {
                       isActive
                         ? 'bg-[#C026A8] text-white'
                         : isEnabled
-                        ? 'bg-[#1A1825] border border-[#1E1C2A] text-white/70 hover:border-[#C026A8]/40 hover:text-white'
-                        : 'bg-[#1A1825] border border-[#1E1C2A] text-white/30 opacity-40 cursor-not-allowed'
+                        ? 'bg-[#F4F3F9] border border-[#E8E6F0] text-[#4D4B60] hover:border-[#C026A8]/40 hover:text-[#1A1827]'
+                        : 'bg-[#F4F3F9] border border-[#E8E6F0] text-[#9999AA] opacity-40 cursor-not-allowed'
                     }`}
                   >
                     <span>{plug.icon}</span>
@@ -462,11 +462,11 @@ export function ClientChatPage() {
 
         {/* Current plug detail description with enhanced info */}
         {currentPlugDef && (
-          <div className="mt-2 px-3 py-2 bg-[#1A1825] border border-[#1E1C2A] rounded-lg flex items-start gap-2">
+          <div className="mt-2 px-3 py-2 bg-[#F4F3F9] border border-[#E8E6F0] rounded-lg flex items-start gap-2">
             <span className="text-base flex-shrink-0 mt-0.5">{PLUG_INFO[currentPlugDef.id]?.icon ?? currentPlugDef.icon}</span>
             <div>
-              <p className="text-xs font-semibold text-white">{PLUG_INFO[currentPlugDef.id]?.title ?? currentPlugDef.label}</p>
-              <p className="text-xs text-[#9CA3AF] leading-relaxed mt-0.5">{PLUG_INFO[currentPlugDef.id]?.desc ?? currentPlugDef.detail}</p>
+              <p className="text-xs font-semibold text-[#1A1827]">{PLUG_INFO[currentPlugDef.id]?.title ?? currentPlugDef.label}</p>
+              <p className="text-xs text-[#6B6B80] leading-relaxed mt-0.5">{PLUG_INFO[currentPlugDef.id]?.desc ?? currentPlugDef.detail}</p>
             </div>
           </div>
         )}
@@ -479,7 +479,7 @@ export function ClientChatPage() {
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#E040A0]/10 to-[#8B22E8]/10 flex items-center justify-center mb-4">
               <span className="text-2xl">{currentPlugDef?.icon}</span>
             </div>
-            <p className="text-white font-semibold text-sm mb-1">{currentPlugDef?.label}</p>
+            <p className="text-[#1A1827] font-semibold text-sm mb-1">{currentPlugDef?.label}</p>
             <p className="text-[#6B6B80] text-xs text-center max-w-xs">{currentPlugDef?.detail}</p>
             <p className="text-[#6B6B80] text-xs mt-3">Escribe un mensaje para empezar</p>
           </div>
@@ -493,7 +493,7 @@ export function ClientChatPage() {
             <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
               msg.role === 'assistant'
                 ? 'bg-gradient-to-br from-[#E040A0] to-[#8B22E8]'
-                : 'bg-[#1A1825] border border-[#1E1C2A]'
+                : 'bg-[#EEECF8] border border-[#E8E6F0]'
             }`}>
               {msg.role === 'assistant' ? (
                 <Bot size={13} className="text-white" />
@@ -503,7 +503,7 @@ export function ClientChatPage() {
             </div>
             <div className={`max-w-[85%] md:max-w-[70%] ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
               {msg.role === 'user' ? (
-                <div className="rounded-2xl p-4 text-sm leading-relaxed whitespace-pre-wrap text-white bg-[#2A1535] border border-[#C026A8]/30">
+                <div className="rounded-2xl p-4 text-sm leading-relaxed whitespace-pre-wrap text-[#1A1827] bg-[#EEECF8] border border-[#C026A8]/30">
                   {msg.content}
                 </div>
               ) : (
@@ -524,9 +524,9 @@ export function ClientChatPage() {
               <Bot size={13} className="text-white" />
             </div>
             <NodoCard dark padding="sm" className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce [animation-delay:0ms]" />
-              <div className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce [animation-delay:150ms]" />
-              <div className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce [animation-delay:300ms]" />
+              <div className="w-1.5 h-1.5 bg-[#BBBBCC] rounded-full animate-bounce [animation-delay:0ms]" />
+              <div className="w-1.5 h-1.5 bg-[#BBBBCC] rounded-full animate-bounce [animation-delay:150ms]" />
+              <div className="w-1.5 h-1.5 bg-[#BBBBCC] rounded-full animate-bounce [animation-delay:300ms]" />
             </NodoCard>
           </div>
         )}
@@ -535,11 +535,11 @@ export function ClientChatPage() {
       </div>
 
       {/* Input area */}
-      <div className="flex-shrink-0 px-4 pb-4 pt-2 border-t border-[#1E1C2A]">
+      <div className="flex-shrink-0 px-4 pb-4 pt-2 border-t border-[#E8E6F0]">
         {/* Attached file chip */}
         {(attachedFile || uploading) && (
           <div className="mb-2 flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-[#1A1825] border border-[#C026A8]/30 rounded-full px-3 py-1.5 text-xs text-white/70">
+            <div className="flex items-center gap-2 bg-[#F4F3F9] border border-[#C026A8]/30 rounded-full px-3 py-1.5 text-xs text-[#4D4B60]">
               {uploading ? (
                 <>
                   <Loader2 size={12} className="animate-spin text-[#C026A8]" />
@@ -551,7 +551,7 @@ export function ClientChatPage() {
                   <span className="max-w-[200px] truncate">{attachedFile?.name}</span>
                   <button
                     onClick={() => setAttachedFile(null)}
-                    className="ml-1 text-[#6B6B80] hover:text-white transition-colors"
+                    className="ml-1 text-[#6B6B80] hover:text-[#1A1827] transition-colors"
                   >
                     <X size={12} />
                   </button>
@@ -562,7 +562,7 @@ export function ClientChatPage() {
         )}
 
         <div className="flex gap-2 items-end">
-          <div className="flex-1 bg-[#1A1825] border border-[#1E1C2A] rounded-xl overflow-hidden focus-within:border-[#C026A8]/40 transition-colors">
+          <div className="flex-1 bg-[#F4F3F9] border border-[#E8E6F0] rounded-xl overflow-hidden focus-within:border-[#C026A8]/40 transition-colors">
             <textarea
               ref={inputRef}
               value={input}
@@ -570,7 +570,7 @@ export function ClientChatPage() {
               onKeyDown={handleKeyDown}
               placeholder="Escribe tu mensaje..."
               rows={1}
-              className="w-full bg-transparent px-4 py-3 text-sm text-white placeholder-[#6B6B80] outline-none resize-none max-h-32"
+              className="w-full bg-transparent px-4 py-3 text-sm text-[#1A1827] placeholder-[#6B6B80] outline-none resize-none max-h-32"
               style={{ minHeight: '44px' }}
             />
           </div>
@@ -582,7 +582,7 @@ export function ClientChatPage() {
             className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-colors ${
               recording
                 ? 'bg-[#C026A8]/20 border-[#C026A8] text-[#C026A8] animate-pulse'
-                : 'bg-[#1A1825] border-[#1E1C2A] text-[#6B6B80] hover:border-[#C026A8]/40 hover:text-[#C026A8]'
+                : 'bg-[#F4F3F9] border-[#E8E6F0] text-[#6B6B80] hover:border-[#C026A8]/40 hover:text-[#C026A8]'
             }`}
           >
             {recording ? <MicOff size={16} /> : <Mic size={16} />}
@@ -602,7 +602,7 @@ export function ClientChatPage() {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 title="Adjuntar archivo"
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#1A1825] border border-[#1E1C2A] text-[#6B6B80] hover:border-[#C026A8]/40 hover:text-[#C026A8] transition-colors disabled:opacity-40"
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#F4F3F9] border border-[#E8E6F0] text-[#6B6B80] hover:border-[#C026A8]/40 hover:text-[#C026A8] transition-colors disabled:opacity-40"
               >
                 <Paperclip size={16} />
               </button>
@@ -610,7 +610,7 @@ export function ClientChatPage() {
           )}
 
           <NodoButton
-            variant="primary"
+            variant="brand"
             size="md"
             onClick={sendMessage}
             loading={sending}

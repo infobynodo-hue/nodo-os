@@ -91,14 +91,14 @@ function CredentialCard({ cred }: { cred: ClientCredential }) {
   }
 
   return (
-    <div className="rounded-2xl border border-[#1E1C2A] bg-[#12101A] overflow-hidden">
+    <div className="rounded-2xl border border-[#E8E6F0] bg-white overflow-hidden">
       {/* Card header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#E040A0]/10 to-[#8B22E8]/10 border border-[#C026A8]/20 flex items-center justify-center flex-shrink-0">
           <PlatformIcon size={18} className="text-[#C026A8]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white">{cred.label}</p>
+          <p className="text-sm font-bold text-[#1A1827]">{cred.label}</p>
           {cred.url && (
             <a
               href={cred.url}
@@ -115,7 +115,7 @@ function CredentialCard({ cred }: { cred: ClientCredential }) {
       </div>
 
       {/* Divider */}
-      <div className="border-t border-[#1E1C2A]" />
+      <div className="border-t border-[#E8E6F0]" />
 
       {/* Fields */}
       <div className="px-4 py-3 space-y-3">
@@ -123,7 +123,7 @@ function CredentialCard({ cred }: { cred: ClientCredential }) {
         {cred.username && (
           <div>
             <p className="text-[10px] font-semibold text-[#6B6B80] uppercase tracking-wider mb-1">Usuario / Teléfono</p>
-            <p className="text-sm font-mono text-white/90 bg-[#1A1825] border border-[#1E1C2A] rounded-lg px-3 py-2">
+            <p className="text-sm font-mono text-[#1A1827] bg-[#F4F3F9] border border-[#E8E6F0] rounded-lg px-3 py-2">
               {cred.username}
             </p>
           </div>
@@ -134,22 +134,22 @@ function CredentialCard({ cred }: { cred: ClientCredential }) {
           <div>
             <p className="text-[10px] font-semibold text-[#6B6B80] uppercase tracking-wider mb-1">Contraseña</p>
             <div className="flex gap-2">
-              <div className="flex-1 flex items-center bg-[#1A1825] border border-[#1E1C2A] rounded-lg px-3 py-2">
-                <p className="text-sm font-mono text-white/90 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+              <div className="flex-1 flex items-center bg-[#F4F3F9] border border-[#E8E6F0] rounded-lg px-3 py-2">
+                <p className="text-sm font-mono text-[#1A1827] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                   {showPassword ? cred.password : '••••••••'}
                 </p>
               </div>
               <button
                 onClick={() => setShowPassword(v => !v)}
                 title={showPassword ? 'Ocultar' : 'Mostrar'}
-                className="w-9 h-9 rounded-lg bg-[#1A1825] border border-[#1E1C2A] flex items-center justify-center text-[#6B6B80] hover:text-white hover:border-[#C026A8]/40 transition-all flex-shrink-0"
+                className="w-9 h-9 rounded-lg bg-[#F4F3F9] border border-[#E8E6F0] flex items-center justify-center text-[#6B6B80] hover:text-[#1A1827] hover:border-[#C026A8]/40 transition-all flex-shrink-0"
               >
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
               <button
                 onClick={copyPassword}
                 title="Copiar contraseña"
-                className="w-9 h-9 rounded-lg bg-[#1A1825] border border-[#1E1C2A] flex items-center justify-center text-[#6B6B80] hover:text-white hover:border-[#C026A8]/40 transition-all flex-shrink-0"
+                className="w-9 h-9 rounded-lg bg-[#F4F3F9] border border-[#E8E6F0] flex items-center justify-center text-[#6B6B80] hover:text-[#1A1827] hover:border-[#C026A8]/40 transition-all flex-shrink-0"
               >
                 {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
               </button>
@@ -165,7 +165,7 @@ function CredentialCard({ cred }: { cred: ClientCredential }) {
               href={cred.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-[#C026A8] hover:text-[#E040A0] transition-colors font-medium bg-[#1A1825] border border-[#1E1C2A] rounded-lg px-3 py-2"
+              className="flex items-center gap-2 text-sm text-[#C026A8] hover:text-[#E040A0] transition-colors font-medium bg-[#F4F3F9] border border-[#E8E6F0] rounded-lg px-3 py-2"
             >
               <Globe size={13} />
               <span className="flex-1 truncate">{cred.url}</span>
@@ -232,7 +232,7 @@ export function ClientCredentialsPage() {
           <Key size={18} className="text-amber-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Mis Accesos</h1>
+          <h1 className="text-xl font-bold text-[#1A1827]">Mis Accesos</h1>
           <p className="text-sm text-[#6B6B80]">Credenciales y plataformas de tu servicio</p>
         </div>
       </div>
@@ -249,10 +249,10 @@ export function ClientCredentialsPage() {
       </div>
 
       {credentials.length === 0 ? (
-        <div className="rounded-2xl border border-[#1E1C2A] bg-[#12101A] p-12 text-center">
-          <Lock size={36} className="text-white/20 mx-auto mb-3" />
-          <p className="text-sm text-white/50 font-medium">Sin credenciales aún</p>
-          <p className="text-xs text-white/30 mt-1 max-w-xs mx-auto">
+        <div className="rounded-2xl border border-[#E8E6F0] bg-white p-12 text-center">
+          <Lock size={36} className="text-[#BBBBCC] mx-auto mb-3" />
+          <p className="text-sm text-[#6B6B80] font-medium">Sin credenciales aún</p>
+          <p className="text-xs text-[#9999AA] mt-1 max-w-xs mx-auto">
             El equipo de NODO ONE compartirá aquí los accesos a tus plataformas cuando estén listos.
           </p>
         </div>
