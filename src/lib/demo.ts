@@ -222,6 +222,62 @@ export const DEMO_BOT_METRICS: BotMetricDemo[] = [
   },
 ]
 
+// ─── Distribución horaria completa (0-23h) ───────────────────────────────────
+// Simula una clínica dental: picos mañana y tarde, algo de noche, poco de madrugada
+export const DEMO_HOURLY: Record<number, number> = {
+  0: 3,  1: 2,  2: 1,  3: 1,  4: 2,  5: 3,
+  6: 6,  7: 14, 8: 31, 9: 48, 10: 52, 11: 44,
+  12: 38, 13: 45, 14: 29, 15: 34, 16: 28, 17: 41,
+  18: 47, 19: 43, 20: 34, 21: 24, 22: 16, 23: 9,
+}
+
+// Por día de la semana (0=Lun … 6=Dom)
+export const DEMO_BY_WEEKDAY: Record<number, number> = {
+  0: 98,  // Lun
+  1: 112, // Mar
+  2: 107, // Mié
+  3: 119, // Jue
+  4: 134, // Vie
+  5: 68,  // Sáb
+  6: 24,  // Dom
+}
+
+// Distribución de duración de conversación
+export const DEMO_DURATION_DIST = [
+  { label: 'Menos de 1 min', range: '<1m',  count: 89,  color: '#10b981' },
+  { label: '1 – 3 minutos',  range: '1-3m', count: 241, color: '#6366f1' },
+  { label: '3 – 5 minutos',  range: '3-5m', count: 187, color: '#c026a8' },
+  { label: '5 – 10 minutos', range: '5-10m',count: 112, color: '#f59e0b' },
+  { label: 'Más de 10 min',  range: '>10m', count: 33,  color: '#ef4444' },
+]
+
+// Distribución de tiempo de respuesta
+export const DEMO_RESPONSE_DIST = [
+  { label: '< 1 segundo',    count: 58,  color: '#10b981' },
+  { label: '1 – 2 segundos', count: 183, color: '#6366f1' },
+  { label: '2 – 4 segundos', count: 214, color: '#c026a8' },
+  { label: '4 – 8 segundos', count: 112, color: '#f59e0b' },
+  { label: '> 8 segundos',   count: 65,  color: '#ef4444' },
+]
+
+// Qué temas se escalan más
+export const DEMO_ESCALATED_TOPICS = [
+  { topic: 'Precios y presupuestos', escalated: 28, resolved: 6,  pct: 82 },
+  { topic: 'Seguros y convenios',    escalated: 21, resolved: 14, pct: 60 },
+  { topic: 'Quejas y reclamaciones', escalated: 18, resolved: 3,  pct: 86 },
+  { topic: 'Urgencias dentales',     escalated: 16, resolved: 8,  pct: 67 },
+  { topic: 'Cambios de cita',        escalated: 9,  resolved: 31, pct: 22 },
+]
+
+// Tendencia semanal por tema
+export const DEMO_TOPIC_TREND: Record<string, number[]> = {
+  'Citas y reservas':       [41, 47, 38, 53],
+  'Precios':                [28, 31, 27, 34],
+  'Horarios':               [24, 26, 21, 28],
+  'Servicios disponibles':  [18, 20, 16, 22],
+  'Seguros aceptados':      [12, 15, 11, 17],
+}
+
 export function getDemoClientWithProject(clientId: string) {
   const client = DEMO_CLIENTS.find(c => c.id === clientId)
   const project = DEMO_PROJECTS.find(p => p.client_id === clientId)
