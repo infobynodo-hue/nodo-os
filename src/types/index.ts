@@ -499,6 +499,36 @@ export interface ClientTutorial {
   created_at: string
 }
 
+// ─── Bot Metrics ─────────────────────────────────────────────────────────────
+export interface BotMetricWeek {
+  id: string
+  project_id: string
+  week_start: string           // ISO date, e.g. "2026-03-31"
+  conversations: number
+  messages_total: number
+  resolution_rate: number      // 0-1
+  escalation_rate: number      // 0-1
+  avg_response_ms: number
+  top_topics: string[]         // JSONB array of topic strings
+  user_satisfaction?: number   // 0-5
+  created_at: string
+}
+
+export interface BotMetricDemo {
+  week_start: string
+  conversations: number
+  atendidas_fuera_horario: number
+  duracion_conversacion_seg: number
+  avg_response_ms: number
+  resolution_rate: number
+  escalation_rate: number
+  conv_manana: number          // 06-12h
+  conv_tarde: number           // 12-20h
+  conv_noche: number           // 20-00h
+  conv_madrugada: number       // 00-06h
+  top_topics: Array<{ topic: string; count: number }>
+}
+
 // ─── Auth / App ───────────────────────────────────────────────────────────────
 export interface AuthUser {
   id: string

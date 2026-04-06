@@ -1,4 +1,4 @@
-import type { Client, Project, ProjectPhase, Task, BillingRecord, BotKnowledge } from '../types'
+import type { Client, Project, ProjectPhase, Task, BillingRecord, BotKnowledge, BotMetricDemo } from '../types'
 
 export const DEMO_CLIENTS: Client[] = [
   {
@@ -137,6 +137,89 @@ export const DEMO_BOT_KNOWLEDGE: BotKnowledge[] = [
   { id: 'k2', project_id: 'demo-project-1', category: 'preguntas_frecuentes', title: 'Preguntas frecuentes', content: '¿Acepta mi seguro? Trabajamos con AXA, Sanitas, DKV y ASISA. ¿Puedo ir sin cita? Sí, para urgencias siempre tenemos hueco. ¿Cuánto tarda un implante? El proceso completo es de 3-6 meses.', is_visible_to_client: true, order_index: 2, updated_at: '2025-01-25T10:00:00Z' },
   { id: 'k3', project_id: 'demo-project-1', category: 'horarios_disponibilidad', title: 'Horarios y ubicación', content: 'Lunes a viernes de 9:00 a 20:00. Sábados de 9:00 a 14:00. Situados en Calle Mayor 45, Madrid. Parking gratuito para pacientes.', is_visible_to_client: true, order_index: 3, updated_at: '2025-01-25T10:00:00Z' },
   { id: 'k4', project_id: 'demo-project-1', category: 'personalidad_tono', title: 'Personalidad del asistente', content: 'Claudia es profesional, empática y cercana. Habla en español neutro, evita tecnicismos innecesarios y siempre ofrece una solución antes de cerrar la conversación.', is_visible_to_client: true, order_index: 4, updated_at: '2025-01-25T10:00:00Z' },
+]
+
+export const DEMO_BOT_METRICS: BotMetricDemo[] = [
+  {
+    week_start: '2026-03-03',
+    conversations: 148,
+    atendidas_fuera_horario: 34,
+    duracion_conversacion_seg: 195,
+    avg_response_ms: 2100,
+    resolution_rate: 0.82,
+    escalation_rate: 0.08,
+    conv_manana: 52,
+    conv_tarde: 71,
+    conv_noche: 19,
+    conv_madrugada: 6,
+    top_topics: [
+      { topic: 'Citas y reservas', count: 41 },
+      { topic: 'Precios', count: 28 },
+      { topic: 'Horarios', count: 24 },
+      { topic: 'Servicios disponibles', count: 18 },
+      { topic: 'Ubicación', count: 12 },
+    ],
+  },
+  {
+    week_start: '2026-03-10',
+    conversations: 163,
+    atendidas_fuera_horario: 41,
+    duracion_conversacion_seg: 188,
+    avg_response_ms: 1950,
+    resolution_rate: 0.85,
+    escalation_rate: 0.07,
+    conv_manana: 58,
+    conv_tarde: 79,
+    conv_noche: 20,
+    conv_madrugada: 6,
+    top_topics: [
+      { topic: 'Citas y reservas', count: 47 },
+      { topic: 'Precios', count: 31 },
+      { topic: 'Horarios', count: 26 },
+      { topic: 'Servicios disponibles', count: 20 },
+      { topic: 'Seguros aceptados', count: 15 },
+    ],
+  },
+  {
+    week_start: '2026-03-17',
+    conversations: 141,
+    atendidas_fuera_horario: 29,
+    duracion_conversacion_seg: 210,
+    avg_response_ms: 2300,
+    resolution_rate: 0.79,
+    escalation_rate: 0.11,
+    conv_manana: 49,
+    conv_tarde: 68,
+    conv_noche: 18,
+    conv_madrugada: 6,
+    top_topics: [
+      { topic: 'Citas y reservas', count: 38 },
+      { topic: 'Precios', count: 27 },
+      { topic: 'Horarios', count: 21 },
+      { topic: 'Servicios disponibles', count: 16 },
+      { topic: 'Ubicación', count: 11 },
+    ],
+  },
+  {
+    week_start: '2026-03-24',
+    conversations: 179,
+    atendidas_fuera_horario: 47,
+    duracion_conversacion_seg: 182,
+    avg_response_ms: 1870,
+    resolution_rate: 0.88,
+    escalation_rate: 0.06,
+    conv_manana: 64,
+    conv_tarde: 86,
+    conv_noche: 22,
+    conv_madrugada: 7,
+    top_topics: [
+      { topic: 'Citas y reservas', count: 53 },
+      { topic: 'Precios', count: 34 },
+      { topic: 'Horarios', count: 28 },
+      { topic: 'Servicios disponibles', count: 22 },
+      { topic: 'Seguros aceptados', count: 17 },
+    ],
+  },
 ]
 
 export function getDemoClientWithProject(clientId: string) {

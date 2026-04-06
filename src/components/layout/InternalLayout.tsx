@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, UserCog, Puzzle, LogOut,
   Menu, X, ChevronLeft, ChevronRight, ShieldCheck, Flame,
-  Eye, ArrowLeft, CheckSquare, CalendarDays, Workflow, Library, GraduationCap,
+  Eye, ArrowLeft, CheckSquare, CalendarDays, Workflow, Library, GraduationCap, BarChart2,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/auth'
 import { NodoAvatar } from '../ui/NodoAvatar'
@@ -48,6 +48,12 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/internal/resources', icon: Library,      label: 'Recursos' },
       { to: '/internal/guias',     icon: GraduationCap, label: 'Guías de uso', adminOnly: true },
+    ],
+  },
+  {
+    label: 'Análisis',
+    items: [
+      { to: '/internal/metrics', icon: BarChart2, label: 'Métricas globales', adminOnly: true },
     ],
   },
   {

@@ -27,6 +27,7 @@ import { TasksPage } from './pages/internal/TasksPage'
 import { CalendarPage } from './pages/internal/CalendarPage'
 import { ResourcesPage } from './pages/internal/ResourcesPage'
 import { GuiasPage } from './pages/internal/GuiasPage'
+import { MasterMetricsPage } from './pages/internal/MasterMetricsPage'
 
 // Client pages
 import { ClientDashboardPage } from './pages/client/ClientDashboardPage'
@@ -37,6 +38,7 @@ import { ClientBillingPage } from './pages/client/ClientBillingPage'
 import { ClientDocsPage } from './pages/client/ClientDocsPage'
 import { ClientCredentialsPage } from './pages/client/ClientCredentialsPage'
 import { ClientAcademiaPage } from './pages/client/ClientAcademiaPage'
+import { ClientMetricsPage } from './pages/client/ClientMetricsPage'
 
 function RootRedirect() {
   const { user, initialized } = useAuthStore()
@@ -89,6 +91,7 @@ export default function App() {
           <Route path="sequences" element={<SequencesPage />} />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="guias" element={<GuiasPage />} />
+          <Route path="metrics" element={<MasterMetricsPage />} />
           <Route
             path="superadmin"
             element={
@@ -117,6 +120,7 @@ export default function App() {
           <Route path="academia" element={<ClientAcademiaPage />} />
           <Route path="docs" element={<ClientDocsPage />} />
           <Route path="credentials" element={<ClientCredentialsPage />} />
+          <Route path="metrics" element={<ClientMetricsPage />} />
         </Route>
 
         {/* Fallback */}
