@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Users, UserCog, Puzzle, LogOut, Bot,
+  LayoutDashboard, Users, UserCog, Puzzle, LogOut,
   Menu, X, ChevronLeft, ChevronRight, ShieldCheck, Flame,
   Eye, ArrowLeft, CheckSquare, CalendarDays, Workflow, Library, GraduationCap,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/auth'
 import { NodoAvatar } from '../ui/NodoAvatar'
+import { NodoIsotipo } from '../ui/NodoIsotipo'
 
 // ─── Nav structure ────────────────────────────────────────────────────────────
 interface NavItem {
@@ -80,8 +81,8 @@ export function InternalLayout() {
     <>
       {/* Logo */}
       <div className={`flex items-center gap-3 px-4 py-5 flex-shrink-0 ${collapsed && !mobile ? 'justify-center px-2' : ''}`}>
-        <div className="w-9 h-9 rounded-xl bg-[#C8F135] flex items-center justify-center flex-shrink-0">
-          <Bot size={17} className="text-[#1A1F2E]" />
+        <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <NodoIsotipo size={32} />
         </div>
         {(!collapsed || mobile) && (
           <div className="flex-1">
@@ -233,33 +234,31 @@ export function InternalLayout() {
   )
 
   return (
-    <div className="flex h-screen bg-[#F4F6F9] overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-transparent">
       {/* Desktop Sidebar */}
-      <aside className={`hidden md:flex flex-col bg-[#1E2433] transition-all duration-200 flex-shrink-0 ${collapsed ? 'w-14' : 'w-56'}`}>
+      <aside className={`hidden md:flex flex-col backdrop-blur-xl bg-[#1e1b4b]/82 border-r border-white/10 transition-all duration-200 flex-shrink-0 ${collapsed ? 'w-14' : 'w-56'}`}>
         <SidebarContent />
       </aside>
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+        <div className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Mobile Drawer */}
-      <aside className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-[#1E2433] transition-transform duration-250 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 flex flex-col backdrop-blur-xl bg-[#1e1b4b]/90 border-r border-white/10 transition-transform duration-250 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <SidebarContent mobile />
       </aside>
 
       {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile top bar */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#1E2433] flex-shrink-0">
+        <header className="md:hidden flex items-center justify-between px-4 py-3 backdrop-blur-xl bg-[#1e1b4b]/85 flex-shrink-0">
           <button onClick={() => setMobileOpen(true)} className="text-white/50 hover:text-white transition-colors p-1 rounded-lg">
             <Menu size={20} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-[#C8F135] flex items-center justify-center">
-              <Bot size={12} className="text-[#1A1F2E]" />
-            </div>
+            <NodoIsotipo size={22} />
             <span className="text-sm font-bold text-white tracking-wide">NODO OS</span>
           </div>
           <div className="w-8" />

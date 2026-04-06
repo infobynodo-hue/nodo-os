@@ -38,25 +38,26 @@ export function NodoButton({
     `,
     brand: `
       text-white font-bold
-      bg-gradient-to-r from-[#E040A0] via-[#C026A8] to-[#8B22E8]
-      hover:opacity-90 active:opacity-80
+      bg-gradient-to-r from-[#c026a8] via-[#a21caf] to-[#7c3aed]
+      hover:opacity-90 hover:-translate-y-px active:opacity-80
       active:scale-[0.98]
-      shadow-[0_4px_14px_rgba(192,38,168,0.3)]
+      shadow-[0_4px_20px_rgba(192,38,168,0.35)]
       disabled:opacity-40 disabled:cursor-not-allowed
     `,
     secondary: `
-      text-[#374151] border border-[#E5E8EF]
-      bg-white hover:bg-[#F9FAFB]
+      text-[#3730a3] border border-[rgba(99,102,241,.3)]
+      bg-[rgba(139,92,246,.1)] hover:bg-[rgba(139,92,246,.18)]
+      backdrop-blur-sm
       active:scale-[0.98]
       disabled:opacity-40 disabled:cursor-not-allowed
     `,
     ghost: `
-      text-[#6B7280] hover:text-[#1A1F2E] hover:bg-[#F4F6F9]
+      text-[#6d7ab5] hover:text-[#1e1b4b] hover:bg-white/50
       active:scale-[0.98]
       disabled:opacity-40 disabled:cursor-not-allowed
     `,
     danger: `
-      text-red-600 bg-red-50 border border-red-200
+      text-red-600 bg-red-50/80 border border-red-200
       hover:bg-red-100
       active:scale-[0.98]
       disabled:opacity-40 disabled:cursor-not-allowed

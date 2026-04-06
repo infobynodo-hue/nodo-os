@@ -13,7 +13,7 @@ export const NodoInput = React.forwardRef<HTMLInputElement, NodoInputProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label className="text-xs font-semibold text-[#374151]">
+          <label className="text-xs font-semibold text-[#3730a3]">
             {label}
             {props.required && <span className="text-[#C026A8] ml-0.5">*</span>}
           </label>
@@ -27,14 +27,14 @@ export const NodoInput = React.forwardRef<HTMLInputElement, NodoInputProps>(
           <input
             ref={ref}
             className={`
-              w-full bg-white border rounded-xl text-sm text-[#1A1F2E] placeholder-[#9CA3AF]
+              w-full bg-white/70 backdrop-blur-sm border rounded-xl text-sm text-[#1e1b4b] placeholder-[#6d7ab5]
               transition-all duration-150 outline-none
               ${leftIcon ? 'pl-9' : 'pl-3.5'} ${rightElement ? 'pr-10' : 'pr-3.5'} py-2.5
               ${error
                 ? 'border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100'
-                : 'border-[#E5E8EF] focus:border-[#C026A8]/50 focus:ring-2 focus:ring-[#C026A8]/10'
+                : 'border-white/60 focus:border-[#c026a8]/50 focus:ring-2 focus:ring-[#c026a8]/10'
               }
-              disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#F9FAFB]
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-white/40
               ${className}
             `}
             {...props}

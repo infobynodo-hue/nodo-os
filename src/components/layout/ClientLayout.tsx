@@ -28,19 +28,20 @@ export function ClientLayout() {
   const handleStopImpersonation = () => { stopImpersonation(); navigate('/internal/dashboard') }
 
   return (
-    <div className="flex h-screen bg-[#F7F6FC] overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-transparent">
 
       {/* ── Sidebar desktop ─────────────────────────────── */}
-      <aside className={`hidden md:flex flex-col flex-shrink-0 border-r border-[#E8E6F0] bg-white transition-all duration-200 ${collapsed ? 'w-[64px]' : 'w-[220px]'}`}>
+      <aside className={`hidden md:flex flex-col flex-shrink-0 border-r border-white/40 transition-all duration-200 backdrop-blur-xl bg-white/65 ${collapsed ? 'w-[64px]' : 'w-[220px]'}`}
+        style={{ boxShadow: 'inset -1px 0 0 rgba(255,255,255,.5)' }}>
         {/* Logo */}
-        <div className={`flex items-center gap-2.5 px-4 py-5 border-b border-[#E8E6F0] ${collapsed ? 'justify-center' : ''}`}>
+        <div className={`flex items-center gap-2.5 px-4 py-5 border-b border-white/40 ${collapsed ? 'justify-center' : ''}`}>
           <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
             <NodoIsotipo size={28} />
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <p className="text-sm font-bold text-[#1A1827] leading-none tracking-wide">NODO ONE</p>
-              <p className="text-[10px] text-[#6B6B80] leading-none mt-0.5">Portal Cliente</p>
+              <p className="text-sm font-bold text-[#1e1b4b] leading-none tracking-wide">NODO ONE</p>
+              <p className="text-[10px] text-[#6d7ab5] leading-none mt-0.5">Portal Cliente</p>
             </div>
           )}
         </div>
@@ -58,7 +59,7 @@ export function ClientLayout() {
                 } ${
                   isActive
                     ? 'bg-gradient-to-r from-[#C026A8]/12 to-[#8B22E8]/8 text-[#C026A8] border border-[#C026A8]/20'
-                    : 'text-[#6B6B80] hover:text-[#1A1827] hover:bg-[#F4F3F9]'
+                    : 'text-[#6d7ab5] hover:text-[#1e1b4b] hover:bg-white/50'
                 }`
               }
             >
@@ -69,23 +70,23 @@ export function ClientLayout() {
         </nav>
 
         {/* Bottom */}
-        <div className="px-2 pb-4 space-y-1 border-t border-[#E8E6F0] pt-3">
+        <div className="px-2 pb-4 space-y-1 border-t border-white/40 pt-3">
           {!collapsed && (
             <div className="px-3 py-1.5">
-              <p className="text-[10px] text-[#6B6B80] truncate">{user?.email}</p>
+              <p className="text-[10px] text-[#6d7ab5] truncate">{user?.email}</p>
             </div>
           )}
           <button
             onClick={handleSignOut}
             title={collapsed ? 'Cerrar sesión' : undefined}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#6B6B80] hover:text-red-400 hover:bg-red-500/5 transition-colors ${collapsed ? 'justify-center' : ''}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#6d7ab5] hover:text-red-500 hover:bg-red-500/8 transition-colors ${collapsed ? 'justify-center' : ''}`}
           >
             <LogOut size={15} className="flex-shrink-0" />
             {!collapsed && <span>Cerrar sesión</span>}
           </button>
           <button
             onClick={() => setCollapsed(c => !c)}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-[#6B6B80] hover:text-[#1A1827] hover:bg-[#F4F3F9] transition-colors ${collapsed ? 'justify-center' : ''}`}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-[#6d7ab5] hover:text-[#1e1b4b] hover:bg-white/50 transition-colors ${collapsed ? 'justify-center' : ''}`}
           >
             {collapsed ? <ChevronRight size={14} /> : <><ChevronLeft size={14} /><span>Colapsar</span></>}
           </button>
@@ -96,18 +97,18 @@ export function ClientLayout() {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="relative w-64 flex flex-col bg-white border-r border-[#E8E6F0]">
-            <div className="flex items-center justify-between px-4 py-4 border-b border-[#E8E6F0]">
+          <aside className="relative w-64 flex flex-col backdrop-blur-xl bg-white/70 border-r border-white/40">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-white/40">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 flex items-center justify-center">
                   <NodoIsotipo size={28} />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-[#1A1827]">NODO ONE</p>
-                  <p className="text-[10px] text-[#6B6B80]">Portal Cliente</p>
+                  <p className="text-sm font-bold text-[#1e1b4b]">NODO ONE</p>
+                  <p className="text-[10px] text-[#6d7ab5]">Portal Cliente</p>
                 </div>
               </div>
-              <button onClick={() => setMobileOpen(false)} className="text-[#6B6B80] hover:text-[#1A1827]">
+              <button onClick={() => setMobileOpen(false)} className="text-[#6d7ab5] hover:text-[#1e1b4b]">
                 <X size={18} />
               </button>
             </div>
@@ -119,7 +120,7 @@ export function ClientLayout() {
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                      isActive ? 'bg-[#C026A8]/12 text-[#C026A8] border border-[#C026A8]/20' : 'text-[#6B6B80] hover:text-[#1A1827] hover:bg-[#F4F3F9]'
+                      isActive ? 'bg-[#C026A8]/12 text-[#C026A8] border border-[#C026A8]/20' : 'text-[#6d7ab5] hover:text-[#1e1b4b] hover:bg-white/50'
                     }`
                   }
                 >
@@ -129,7 +130,7 @@ export function ClientLayout() {
               ))}
             </nav>
             <div className="px-2 pb-4 border-t border-[#E8E6F0] pt-3">
-              <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#6B6B80] hover:text-red-400 hover:bg-red-500/5 transition-colors">
+              <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#6d7ab5] hover:text-red-400 hover:bg-red-500/5 transition-colors">
                 <LogOut size={15} /> Cerrar sesión
               </button>
             </div>
@@ -153,13 +154,13 @@ export function ClientLayout() {
         )}
 
         {/* Mobile top bar */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[#E8E6F0] bg-white flex-shrink-0">
-          <button onClick={() => setMobileOpen(true)} className="text-[#6B6B80] hover:text-[#1A1827]">
+        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/40 backdrop-blur-xl bg-white/65 flex-shrink-0">
+          <button onClick={() => setMobileOpen(true)} className="text-[#6d7ab5] hover:text-[#1e1b4b]">
             <Menu size={20} />
           </button>
           <div className="flex items-center gap-2">
             <NodoIsotipo size={22} />
-            <span className="text-sm font-bold text-[#1A1827]">NODO ONE</span>
+            <span className="text-sm font-bold text-[#1e1b4b]">NODO ONE</span>
           </div>
           <div className="w-8" />
         </header>

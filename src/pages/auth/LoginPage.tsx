@@ -33,26 +33,20 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6FC] flex items-center justify-center p-4">
-      {/* Background gradient orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#C026A8]/8 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-[#8B22E8]/6 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm relative fade-in">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 flex items-center justify-center mb-4 drop-shadow-[0_0_20px_rgba(192,38,168,0.45)]">
+          <div className="w-16 h-16 flex items-center justify-center mb-4 drop-shadow-[0_0_24px_rgba(192,38,168,0.45)]">
             <NodoIsotipo size={56} />
           </div>
-          <h1 className="text-2xl font-bold text-[#1A1827] tracking-wide">NODO ONE</h1>
-          <p className="text-sm text-[#6B6B80] mt-1">Plataforma de gestión de servicios</p>
+          <h1 className="text-2xl font-bold text-[#1e1b4b] tracking-wide">NODO ONE</h1>
+          <p className="text-sm text-[#6d7ab5] mt-1">Plataforma de gestión de servicios</p>
         </div>
 
         {/* Form */}
-        <div className="bg-white border border-[#E8E6F0] rounded-2xl p-6 shadow-[0_2px_24px_rgba(0,0,0,0.08)]">
-          <h2 className="text-base font-semibold text-[#1A1827] mb-5">Iniciar sesión</h2>
+        <div className="lg p-6">
+          <h2 className="text-base font-semibold text-[#1e1b4b] mb-5 font-syne">Iniciar sesión</h2>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <NodoInput
@@ -104,7 +98,7 @@ export function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-[#6B6B80] mt-6">
+        <p className="text-center text-xs text-[#6d7ab5] mt-6">
           ¿Problemas para acceder? Contacta a tu gestor de NODO ONE.
         </p>
       </div>

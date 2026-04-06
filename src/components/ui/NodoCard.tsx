@@ -1,7 +1,7 @@
 import React from 'react'
 
 interface NodoCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** Dark panel variant — for tables / detail areas */
+  /** Subtle tinted card — for chat bubbles / secondary panels */
   dark?: boolean
   glass?: boolean
   padding?: 'none' | 'sm' | 'md' | 'lg'
@@ -28,7 +28,11 @@ export function NodoCard({
 
   if (dark) {
     return (
-      <div className={`rounded-2xl ${paddings[padding]} bg-[#F4F3F9] border border-[#E8E6F0] ${className}`} {...props}>
+      <div
+        className={`rounded-2xl ${paddings[padding]} bg-white/50 backdrop-blur-md border border-white/50 ${className}`}
+        style={{ boxShadow: '0 2px 16px rgba(99,102,241,.08), inset 0 1px 0 rgba(255,255,255,.8)' }}
+        {...props}
+      >
         {children}
       </div>
     )
@@ -36,7 +40,7 @@ export function NodoCard({
 
   if (glass) {
     return (
-      <div className={`rounded-2xl ${paddings[padding]} backdrop-blur-md bg-white/80 border border-white/60 ${className}`} {...props}>
+      <div className={`lg ${paddings[padding]} ${className}`} {...props}>
         {children}
       </div>
     )
@@ -44,7 +48,8 @@ export function NodoCard({
 
   return (
     <div
-      className={`rounded-2xl ${paddings[padding]} bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${className}`}
+      className={`rounded-2xl ${paddings[padding]} bg-white/70 backdrop-blur-lg border border-white/60 ${className}`}
+      style={{ boxShadow: '0 4px 24px rgba(99,102,241,.1), inset 0 1.5px 0 rgba(255,255,255,.9)' }}
       {...props}
     >
       {children}
