@@ -79,7 +79,7 @@ export function ClientChatPage() {
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null)
   const [uploading, setUploading] = useState(false)
   const [recording, setRecording] = useState(false)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -92,12 +92,12 @@ export function ClientChatPage() {
       setRecording(false)
       return
     }
-    const rec: SpeechRecognition = new SR()
+    const rec: any = new SR()
     rec.lang = 'es-ES'
     rec.continuous = false
     rec.interimResults = true
-    rec.onresult = (e: SpeechRecognitionEvent) => {
-      const transcript = Array.from(e.results).map(r => r[0].transcript).join('')
+    rec.onresult = (e: any) => {
+      const transcript = Array.from(e.results).map((r: any) => r[0].transcript).join('')
       setInput(transcript)
     }
     rec.onend = () => setRecording(false)
