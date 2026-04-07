@@ -11,7 +11,7 @@ const CLIENT_METRICS = [
     conversations: 434900,
     fuera_horario: 187000,
     resolution_rate: 0.835,
-    avg_response_ms: 2055,
+    avg_response_ms: 34000,
     trend: 'up' as const,
     top_topic: 'Citas y reservas',
   },
@@ -20,7 +20,7 @@ const CLIENT_METRICS = [
     conversations: 195800,
     fuera_horario: 84200,
     resolution_rate: 0.71,
-    avg_response_ms: 3100,
+    avg_response_ms: 41000,
     trend: 'down' as const,
     top_topic: 'Disponibilidad de propiedades',
   },
@@ -29,7 +29,7 @@ const CLIENT_METRICS = [
     conversations: 352900,
     fuera_horario: 151700,
     resolution_rate: 0.91,
-    avg_response_ms: 1750,
+    avg_response_ms: 31000,
     trend: 'up' as const,
     top_topic: 'Clases y horarios',
   },
@@ -38,7 +38,7 @@ const CLIENT_METRICS = [
     conversations: 133400,
     fuera_horario: 57400,
     resolution_rate: 0.66,
-    avg_response_ms: 4200,
+    avg_response_ms: 42000,
     trend: 'stable' as const,
     top_topic: 'Carta y menú',
   },
@@ -202,7 +202,7 @@ export function MasterMetricsPage() {
                       <td className="py-3 px-3 text-right">
                         <span
                           className="text-sm"
-                          style={{ color: cm.avg_response_ms <= 2500 ? '#10b981' : cm.avg_response_ms <= 3500 ? '#f59e0b' : '#ef4444' }}
+                          style={{ color: cm.avg_response_ms <= 30000 ? '#10b981' : cm.avg_response_ms <= 45000 ? '#f59e0b' : '#ef4444' }}
                         >
                           {fmtTime(cm.avg_response_ms)}
                         </span>
