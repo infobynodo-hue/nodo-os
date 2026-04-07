@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, MessageSquare, FolderKanban,
   CreditCard, LogOut, Eye, ArrowLeft, Folder,
-  ChevronLeft, ChevronRight, Menu, X, GraduationCap, BarChart2,
+  ChevronLeft, ChevronRight, Menu, X, GraduationCap, BarChart2, FlaskConical,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/auth'
 import { NodoIsotipo } from '../ui/NodoIsotipo'
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/client/project',   icon: FolderKanban,     label: 'Mi proyecto' },
   { to: '/client/academia',  icon: GraduationCap,    label: 'Guías de uso' },
   { to: '/client/docs',      icon: Folder,           label: 'Documentos' },
+  { to: '/client/tests',     icon: FlaskConical,     label: 'Pruebas del agente' },
   { to: '/client/billing',   icon: CreditCard,       label: 'Facturación' },
 ]
 

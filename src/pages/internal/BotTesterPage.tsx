@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   Play, X, ChevronRight, CheckCircle, AlertTriangle, XCircle,
-  Loader2, RotateCcw, Bot, User, Sparkles, Plus, Minus,
+  Loader2, RotateCcw, Bot, User, Sparkles, Plus, Minus, Upload,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { NodoButton } from '../../components/ui/NodoButton'
@@ -99,8 +99,44 @@ export function BotTesterPage() {
   const [analyzing, setAnalyzing]         = useState(false)
   const [report, setReport]               = useState<AnalysisReport | null>(null)
   const [globalError, setGlobalError]     = useState<string | null>(null)
+  const [clientId, setClientId]           = useState<string>('')
+  const [clients, setClients]             = useState<{ id: string; name: string }[]>([])
+  const [pdfLoading, setPdfLoading]       = useState(false)
+  const sessionIdRef = useRef<string>('')
+  const pdfInputRef  = useRef<HTMLInputElement>(null)
 
   const runningRef = useRef(false)
+
+  useEffect(() => {
+    supabase.from('clients').select('id, name').order('name').then(({ data }) => {
+      if (data) setClients(data)
+    })
+  }, [])
+
+  // ── PDF extraction ──────────────────────────────────────────────────────────
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPdfLoading(true)
+    try {
+      const buffer = await file.arrayBuffer()
+      const bytes  = new Uint8Array(buffer)
+      let binary   = ''
+      bytes.forEach(b => { binary += String.fromCharCode(b) })
+      const base64 = btoa(binary)
+
+      const { data, error } = await supabase.functions.invoke('bot-tester', {
+        body: { action: 'extract-pdf-objective', pdf_base64: base64, filename: file.name },
+      })
+      if (error || data?.error) throw new Error(error?.message ?? data?.error)
+      setObjective(data.objective)
+    } catch (err: any) {
+      setGlobalError('Error al leer PDF: ' + (err.message ?? 'desconocido'))
+    } finally {
+      setPdfLoading(false)
+      if (pdfInputRef.current) pdfInputRef.current.value = ''
+    }
+  }
 
   // ── Slot management ─────────────────────────────────────────────────────────
   const togglePersona = (id: string) => {
@@ -165,6 +201,22 @@ export function BotTesterPage() {
     if (!botPrompt.trim() || !objective.trim() || slots.length === 0) return
     setGlobalError(null)
     const convList = buildConversations()
+
+    // Generate + persist session
+    const sid = crypto.randomUUID()
+    sessionIdRef.current = sid
+    supabase.functions.invoke('bot-tester', {
+      body: {
+        action: 'save-session',
+        session_id: sid,
+        name: sessionName || 'Sin nombre',
+        bot_prompt: botPrompt,
+        objective,
+        num_turns: numTurns,
+        client_id: clientId || null,
+      },
+    })
+
     setConversations(convList)
     setProgress({ done: 0, total: convList.length })
     setSelectedId(convList[0].id)
@@ -194,7 +246,16 @@ export function BotTesterPage() {
     })
 
     const { data, error } = await supabase.functions.invoke('bot-tester', {
-      body: { action: 'analyze', conversations: payload, objective },
+      body: {
+        action: 'analyze',
+        conversations: payload,
+        objective,
+        session_id: sessionIdRef.current || null,
+        client_id: clientId || null,
+        session_name: sessionName || 'Sin nombre',
+        bot_prompt: botPrompt,
+        num_turns: numTurns,
+      },
     })
 
     if (error || data?.error) {
@@ -214,6 +275,7 @@ export function BotTesterPage() {
     setProgress({ done: 0, total: 0 })
     setSelectedId(null)
     setGlobalError(null)
+    sessionIdRef.current = ''
   }
 
   // ── Selected conversation ────────────────────────────────────────────────────
@@ -231,15 +293,39 @@ export function BotTesterPage() {
             <p className="text-sm text-[#6d7ab5] mt-0.5">Prueba tu bot antes de entregárselo al cliente</p>
           </div>
 
-          {/* Session name */}
+          {globalError && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              <AlertTriangle size={14} className="flex-shrink-0" />
+              {globalError}
+            </div>
+          )}
+
+          {/* Session name + client selector */}
           <NodoCard padding="md">
-            <p className="text-xs font-semibold text-[#3730a3] mb-3">Nombre de la prueba</p>
-            <input
-              value={sessionName}
-              onChange={e => setSessionName(e.target.value)}
-              placeholder="Ej: Prueba inicial — Clínica DentaPlus"
-              className="w-full bg-white/70 border border-white/60 rounded-xl px-3.5 py-2.5 text-sm text-[#1e1b4b] placeholder-[#6d7ab5] outline-none focus:border-[#c026a8]/50 focus:ring-2 focus:ring-[#c026a8]/10 transition-all"
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs font-semibold text-[#3730a3] mb-2">Nombre de la prueba</p>
+                <input
+                  value={sessionName}
+                  onChange={e => setSessionName(e.target.value)}
+                  placeholder="Ej: Prueba inicial — Clínica DentaPlus"
+                  className="w-full bg-white/70 border border-white/60 rounded-xl px-3.5 py-2.5 text-sm text-[#1e1b4b] placeholder-[#6d7ab5] outline-none focus:border-[#c026a8]/50 focus:ring-2 focus:ring-[#c026a8]/10 transition-all"
+                />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[#3730a3] mb-2">Asignar a cliente <span className="font-normal text-[#6d7ab5]">(opcional)</span></p>
+                <select
+                  value={clientId}
+                  onChange={e => setClientId(e.target.value)}
+                  className="w-full bg-white/70 border border-white/60 rounded-xl px-3.5 py-2.5 text-sm text-[#1e1b4b] outline-none focus:border-[#c026a8]/50 focus:ring-2 focus:ring-[#c026a8]/10 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">— Sin asignar —</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </NodoCard>
 
           {/* Bot prompt */}
@@ -257,7 +343,19 @@ export function BotTesterPage() {
 
           {/* Objective */}
           <NodoCard padding="md">
-            <p className="text-xs font-semibold text-[#3730a3] mb-1">Objetivo de la prueba</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-semibold text-[#3730a3]">Objetivo de la prueba</p>
+              <button
+                type="button"
+                onClick={() => pdfInputRef.current?.click()}
+                disabled={pdfLoading}
+                className="flex items-center gap-1.5 text-[10px] font-semibold text-[#c026a8] hover:text-[#9c1887] px-2.5 py-1 rounded-lg bg-[#c026a8]/8 hover:bg-[#c026a8]/14 transition-colors disabled:opacity-50"
+              >
+                {pdfLoading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                {pdfLoading ? 'Leyendo PDF...' : 'Subir PDF'}
+              </button>
+              <input ref={pdfInputRef} type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} />
+            </div>
             <p className="text-[11px] text-[#6d7ab5] mb-3">¿Qué quieres verificar? El análisis final evaluará esto</p>
             <textarea
               value={objective}

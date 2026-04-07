@@ -40,6 +40,7 @@ import { ClientDocsPage } from './pages/client/ClientDocsPage'
 import { ClientCredentialsPage } from './pages/client/ClientCredentialsPage'
 import { ClientAcademiaPage } from './pages/client/ClientAcademiaPage'
 import { ClientMetricsPage } from './pages/client/ClientMetricsPage'
+import { ClientTestsPage } from './pages/client/ClientTestsPage'
 
 function RootRedirect() {
   const { user, initialized } = useAuthStore()
@@ -123,6 +124,7 @@ export default function App() {
           <Route path="docs" element={<ClientDocsPage />} />
           <Route path="credentials" element={<ClientCredentialsPage />} />
           <Route path="metrics" element={<ClientMetricsPage />} />
+          <Route path="tests" element={<ClientTestsPage />} />
         </Route>
 
         {/* Fallback */}
