@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft, LayoutDashboard, GitBranch, MessageSquare,
-  Brain, Send, CreditCard, Puzzle, MoreVertical, Pencil, Power
+  Brain, Send, CreditCard, Puzzle, MoreVertical, Pencil, Power,
+  Upload, Loader2,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
@@ -674,6 +675,72 @@ function BotKnowledgeTab({
   const [addingCategory, setAddingCategory] = useState<KnowledgeCategory | null>(null)
   const [newItemTitle, setNewItemTitle] = useState('')
   const [newItemContent, setNewItemContent] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const importInputRef = { current: null as HTMLInputElement | null }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !projectId) return
+    setImporting(true)
+    setImportError(null)
+    try {
+      // Read file as base64
+      const buffer = await file.arrayBuffer()
+      const bytes = new Uint8Array(buffer)
+      let binary = ''
+      bytes.forEach(b => { binary += String.fromCharCode(b) })
+      const base64 = btoa(binary)
+
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+      if (!apiKey) throw new Error('API key no configurada')
+
+      const isPdf = file.type === 'application/pdf'
+      const messageContent = isPdf
+        ? [
+            { type: 'text', text: 'Este documento es el system prompt o información de negocio de un cliente. Extrae y estructura toda la información relevante para la base de conocimiento de un agente IA. Devuelve ÚNICAMENTE un JSON array con objetos {category, title, content}. Las categorías válidas son: descripcion_general, personalidad_tono, preguntas_frecuentes, servicios_activos, horarios_disponibilidad, prohibiciones, alertas_escalamiento, indicaciones_operativas, otra. Extrae tantas entradas como sea necesario para cubrir todo el documento. No añadas markdown, solo JSON puro.' },
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+          ]
+        : `Este documento es el system prompt o información de negocio de un cliente:\n\n${await file.text()}\n\nExtrae y estructura toda la información en un JSON array con objetos {category, title, content}. Las categorías válidas son: descripcion_general, personalidad_tono, preguntas_frecuentes, servicios_activos, horarios_disponibilidad, prohibiciones, alertas_escalamiento, indicaciones_operativas, otra. Devuelve ÚNICAMENTE JSON puro, sin markdown.`
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content: messageContent }],
+        }),
+      })
+      if (!res.ok) throw new Error(`Error API: ${res.status}`)
+      const data = await res.json() as { content: Array<{ text: string }> }
+      const raw = data.content[0].text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      const parsed: Array<{ category: string; title: string; content: string }> = JSON.parse(raw)
+
+      // Save all entries to DB
+      const inserts = parsed.map((item, i) => ({
+        project_id: projectId,
+        category: item.category as KnowledgeCategory,
+        title: item.title,
+        content: item.content,
+        is_visible_to_client: true,
+        order_index: knowledge.length + i,
+        updated_by: user?.id,
+      }))
+      const { data: inserted } = await supabase.from('bot_knowledge').insert(inserts).select()
+      if (inserted) onUpdate([...knowledge, ...inserted])
+    } catch (err: any) {
+      setImportError('Error al importar: ' + (err.message ?? 'desconocido'))
+    } finally {
+      setImporting(false)
+      if (importInputRef.current) importInputRef.current.value = ''
+    }
+  }
 
   async function saveEdit(item: BotKnowledge) {
     await supabase.from('bot_knowledge').update({
@@ -714,6 +781,30 @@ function BotKnowledgeTab({
 
   return (
     <div className="space-y-6">
+      {/* Import document button */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-[#9CA3AF]">{knowledge.length} entradas en la base de conocimiento</p>
+        <div>
+          <input
+            ref={el => { importInputRef.current = el }}
+            type="file"
+            accept=".pdf,.txt,.md"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <button
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#374151] border border-[#E5E8EF] px-3 py-1.5 rounded-lg hover:border-[#C8F135]/50 hover:bg-[#C8F135]/5 transition-colors disabled:opacity-50"
+          >
+            {importing ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+            {importing ? 'Importando...' : 'Importar documento'}
+          </button>
+        </div>
+      </div>
+      {importError && (
+        <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600">{importError}</div>
+      )}
       {categories.map((cat) => {
         const items = grouped[cat] || []
         return (

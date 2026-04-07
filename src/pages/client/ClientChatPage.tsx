@@ -79,6 +79,12 @@ export function ClientChatPage() {
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null)
   const [uploading, setUploading] = useState(false)
   const [recording, setRecording] = useState(false)
+  const [botMetrics, setBotMetrics] = useState<Array<{
+    week_start: string; conversations: number; messages_total: number;
+    resolution_rate: number; escalation_rate: number; avg_response_ms: number;
+    top_topics: string[]; user_satisfaction: number;
+  }>>([])
+
   const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -134,6 +140,17 @@ export function ClientChatPage() {
     setProject(projectRes.data)
     setClient(clientRes.data)
     setAvailablePlugs(plugsRes.data || [])
+
+    // Load bot metrics for bot_metrics plug
+    if (projectRes.data?.id) {
+      const { data: metricsData } = await supabase
+        .from('bot_metrics')
+        .select('week_start, conversations, messages_total, resolution_rate, escalation_rate, avg_response_ms, top_topics, user_satisfaction')
+        .eq('project_id', projectRes.data.id)
+        .order('week_start', { ascending: false })
+        .limit(8)
+      if (metricsData) setBotMetrics(metricsData)
+    }
 
     // Set default plug to first available
     if (plugsRes.data && plugsRes.data.length > 0) {
@@ -330,7 +347,7 @@ export function ClientChatPage() {
         history.push({ role: 'user', content: userContent })
       }
 
-      const systemPrompt = buildSystemPrompt(selectedPlug, project, client)
+      const systemPrompt = buildSystemPrompt(selectedPlug, project, client, botMetrics)
       const response = await callClaude(systemPrompt, history)
 
       // Guardar respuesta del asistente
@@ -636,14 +653,56 @@ const AGENT_NAMES: Record<string, string> = {
 }
 
 // Build system prompt with client context
-function buildSystemPrompt(plugId: PlugId, project: Project, client: Client): string {
+function buildSystemPrompt(
+  plugId: PlugId,
+  project: Project,
+  client: Client,
+  metrics?: Array<{
+    week_start: string; conversations: number; messages_total: number;
+    resolution_rate: number; escalation_rate: number; avg_response_ms: number;
+    top_topics: string[]; user_satisfaction: number;
+  }>
+): string {
   const base = PLUG_SYSTEM_PROMPTS[plugId] || ''
   const agentName = AGENT_NAMES[project.service_type] ?? 'el empleado digital'
-  return base
+  let prompt = base
     .replace(/{agent_name}/g, agentName)
     .replace(/{service_type}/g, SERVICE_LABELS[project.service_type])
     .replace(/{sector}/g, client.sector)
     .replace(/{business_name}/g, client.business_name)
+
+  // Inject real metrics data for bot_metrics plug
+  if (plugId === 'bot_metrics' && metrics && metrics.length > 0) {
+    const totalConvs = metrics.reduce((a, w) => a + w.conversations, 0)
+    const avgResolution = (metrics.reduce((a, w) => a + w.resolution_rate, 0) / metrics.length * 100).toFixed(1)
+    const avgEscalation = (metrics.reduce((a, w) => a + w.escalation_rate, 0) / metrics.length * 100).toFixed(1)
+    const avgResponse = Math.round(metrics.reduce((a, w) => a + w.avg_response_ms, 0) / metrics.length / 1000)
+    const topicCounts: Record<string, number> = {}
+    metrics.forEach(w => (w.top_topics || []).forEach((t: string) => { topicCounts[t] = (topicCounts[t] || 0) + 1 }))
+    const topTopics = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t]) => t)
+    const lastWeek = metrics[0]
+    const prevWeek = metrics[1]
+    const trend = prevWeek ? (lastWeek.conversations > prevWeek.conversations ? 'creciente' : lastWeek.conversations < prevWeek.conversations ? 'decreciente' : 'estable') : 'estable'
+
+    const metricsBlock = `
+DATOS REALES DEL SISTEMA (últimas ${metrics.length} semanas):
+- Total conversaciones: ${totalConvs.toLocaleString('es-ES')}
+- Promedio semanal: ${Math.round(totalConvs / metrics.length)} conversaciones/semana
+- Tendencia: ${trend} (semana pasada: ${lastWeek.conversations} conv.)
+- Tasa de resolución autónoma: ${avgResolution}%
+- Tasa de escalación a humano: ${avgEscalation}%
+- Tiempo de respuesta medio: ${avgResponse} segundos
+- Satisfacción: ${(metrics.reduce((a, w) => a + (w.user_satisfaction || 0), 0) / metrics.length).toFixed(1)}/5
+- Temas más frecuentes: ${topTopics.join(', ')}
+
+Semana más reciente (${lastWeek.week_start}): ${lastWeek.conversations} conversaciones · ${(lastWeek.resolution_rate * 100).toFixed(0)}% resolución · ${lastWeek.avg_response_ms / 1000}s respuesta
+
+Usa ESTOS datos reales cuando el cliente pregunte por métricas. Habla en primera persona del equipo NODO ONE.`
+
+    prompt = metricsBlock + '\n\n' + prompt
+  }
+
+  return prompt
 }
 
 // Call Claude API
