@@ -253,7 +253,7 @@ export function ClientTestsPage() {
     supabase
       .from('bot_test_sessions')
       .select('*')
-      .eq('client_id', user.clientId)
+      .eq('client_id', user?.clientId ?? '')
       .eq('status', 'completed')
       .order('completed_at', { ascending: false })
       .then(({ data }) => {

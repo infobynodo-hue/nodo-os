@@ -110,8 +110,8 @@ export function BotTesterPage() {
   const runningRef = useRef(false)
 
   useEffect(() => {
-    supabase.from('clients').select('id, name').order('name').then(({ data }) => {
-      if (data) setClients(data)
+    supabase.from('clients').select('id, business_name').order('business_name').then(({ data }) => {
+      if (data) setClients((data ?? []).map((c: { id: string; business_name: string }) => ({ id: c.id, name: c.business_name })))
     })
   }, [])
 
