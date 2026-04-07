@@ -27,6 +27,7 @@ import { TasksPage } from './pages/internal/TasksPage'
 import { CalendarPage } from './pages/internal/CalendarPage'
 import { ResourcesPage } from './pages/internal/ResourcesPage'
 import { GuiasPage } from './pages/internal/GuiasPage'
+import { BotTesterPage } from './pages/internal/BotTesterPage'
 import { MasterMetricsPage } from './pages/internal/MasterMetricsPage'
 
 // Client pages
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="guias" element={<GuiasPage />} />
           <Route path="metrics" element={<MasterMetricsPage />} />
+          <Route path="bot-tester" element={<BotTesterPage />} />
           <Route
             path="superadmin"
             element={

@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, UserCog, Puzzle, LogOut,
   Menu, X, ChevronLeft, ChevronRight, ShieldCheck, Flame,
-  Eye, ArrowLeft, CheckSquare, CalendarDays, Workflow, Library, GraduationCap, BarChart2,
+  Eye, ArrowLeft, CheckSquare, CalendarDays, Workflow, Library, GraduationCap, BarChart2, FlaskConical,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/auth'
 import { NodoAvatar } from '../ui/NodoAvatar'
@@ -53,7 +53,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Análisis',
     items: [
-      { to: '/internal/metrics', icon: BarChart2, label: 'Métricas globales', adminOnly: true },
+      { to: '/internal/metrics',    icon: BarChart2,     label: 'Métricas globales', adminOnly: true },
+      { to: '/internal/bot-tester', icon: FlaskConical,  label: 'Bot Tester',        adminOnly: true },
     ],
   },
   {
