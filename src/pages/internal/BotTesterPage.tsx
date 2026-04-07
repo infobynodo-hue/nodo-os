@@ -37,6 +37,8 @@ interface Conversation {
   id: string
   personaId: string
   personaName: string
+  scenarioIndex: number
+  scenario?: string          // filled after run-conversation returns
   turns: ConvTurn[]
   status: 'pending' | 'running' | 'done' | 'error'
   error?: string
@@ -163,6 +165,7 @@ export function BotTesterPage() {
           id: crypto.randomUUID(),
           personaId: slot.personaId,
           personaName: randName(usedNames),
+          scenarioIndex: i,   // 0, 1, 2... per persona type → forces variety
           turns: [],
           status: 'pending',
         })
@@ -185,15 +188,17 @@ export function BotTesterPage() {
         action: 'run-conversation',
         bot_prompt: botPrompt,
         persona_prompt: persona.prompt,
+        persona_label: persona.label,
         persona_name: conv.personaName,
         num_turns: numTurns,
+        scenario_index: conv.scenarioIndex,
       },
     })
 
     if (error || data?.error) {
       updateConv(conv.id, { status: 'error', error: error?.message ?? data?.error })
     } else {
-      updateConv(conv.id, { status: 'done', turns: data.turns })
+      updateConv(conv.id, { status: 'done', turns: data.turns, scenario: data.scenario })
     }
   }
 
@@ -242,7 +247,7 @@ export function BotTesterPage() {
     const doneConvs = conversations.filter(c => c.status === 'done')
     const payload = doneConvs.map(c => {
       const persona = PERSONAS.find(p => p.id === c.personaId)!
-      return { personaName: c.personaName, personaLabel: persona.label, turns: c.turns }
+      return { personaName: c.personaName, personaLabel: persona.label, scenario: c.scenario, turns: c.turns }
     })
 
     const { data, error } = await supabase.functions.invoke('bot-tester', {
@@ -544,6 +549,9 @@ export function BotTesterPage() {
                       </span>
                     </div>
                     <p className="text-[10px]" style={{ color: persona.color }}>{persona.label}</p>
+                    {conv.scenario && !lastMsg && (
+                      <p className="text-[10px] text-[#6d7ab5] truncate mt-0.5 italic">{conv.scenario}</p>
+                    )}
                     {lastMsg && (
                       <p className="text-[10px] text-[#6d7ab5] truncate mt-0.5">{lastMsg.content}</p>
                     )}
@@ -564,12 +572,17 @@ export function BotTesterPage() {
                     return (
                       <>
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ background: p.bg }}>{p.emoji}</div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-[#1e1b4b]">{selectedConv.personaName}</p>
                           <p className="text-[10px]" style={{ color: p.color }}>{p.label}</p>
+                          {selectedConv.scenario && (
+                            <p className="text-[10px] text-[#6d7ab5] mt-0.5 truncate" title={selectedConv.scenario}>
+                              📍 {selectedConv.scenario}
+                            </p>
+                          )}
                         </div>
                         {selectedConv.status === 'running' && (
-                          <div className="ml-auto flex items-center gap-1.5 text-xs text-[#c026a8]">
+                          <div className="ml-auto flex items-center gap-1.5 text-xs text-[#c026a8] flex-shrink-0">
                             <Loader2 size={12} className="animate-spin" /> Generando...
                           </div>
                         )}
