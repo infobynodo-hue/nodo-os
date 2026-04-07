@@ -3,12 +3,13 @@ import { MessageCircle, Moon, Clock, Zap, TrendingUp, TrendingDown, Minus } from
 import { NodoCard } from '../../components/ui/NodoCard'
 import { DEMO_CLIENTS, DEMO_BOT_METRICS } from '../../lib/demo'
 
-// ─── Datos demo: un resumen por cliente ──────────────────────────────────────
+// ─── Datos demo: historial completo desde inicio de operaciones ──────────────
+// Total: 1.117.000 conversaciones · 43% fuera de horario laboral
 const CLIENT_METRICS = [
   {
     client_id: 'demo-client-1',
-    conversations: 631,
-    fuera_horario: 151,
+    conversations: 434900,
+    fuera_horario: 187000,
     resolution_rate: 0.835,
     avg_response_ms: 2055,
     trend: 'up' as const,
@@ -16,8 +17,8 @@ const CLIENT_METRICS = [
   },
   {
     client_id: 'demo-client-2',
-    conversations: 284,
-    fuera_horario: 62,
+    conversations: 195800,
+    fuera_horario: 84200,
     resolution_rate: 0.71,
     avg_response_ms: 3100,
     trend: 'down' as const,
@@ -25,8 +26,8 @@ const CLIENT_METRICS = [
   },
   {
     client_id: 'demo-client-3',
-    conversations: 512,
-    fuera_horario: 89,
+    conversations: 352900,
+    fuera_horario: 151700,
     resolution_rate: 0.91,
     avg_response_ms: 1750,
     trend: 'up' as const,
@@ -34,8 +35,8 @@ const CLIENT_METRICS = [
   },
   {
     client_id: 'demo-client-4',
-    conversations: 193,
-    fuera_horario: 41,
+    conversations: 133400,
+    fuera_horario: 57400,
     resolution_rate: 0.66,
     avg_response_ms: 4200,
     trend: 'stable' as const,
@@ -90,17 +91,41 @@ export function MasterMetricsPage() {
         {/* Header */}
         <div>
           <h1 className="text-xl font-bold text-[#1e1b4b] font-syne">Métricas globales</h1>
-          <p className="text-sm text-[#6d7ab5] mt-0.5">Resumen agregado de todos los agentes activos</p>
+          <p className="text-sm text-[#6d7ab5] mt-0.5">Historial completo desde inicio de operaciones · todos los agentes</p>
         </div>
 
         {/* ── 4 hero totals ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { icon: <MessageCircle size={18} />, label: 'Conversaciones totales', value: globalConversations.toLocaleString('es-ES'), accent: '#c026a8' },
-            { icon: <Moon size={18} />,           label: 'Atendidas fuera de horario', value: globalFueraHorario.toLocaleString('es-ES'), accent: '#7c3aed' },
-            { icon: <Zap size={18} />,            label: 'Respuesta media global', value: fmtTime(globalAvgResponse), accent: '#0ea5e9' },
-            { icon: <Clock size={18} />,          label: 'Resolución autónoma media', value: `${Math.round(globalResolution * 100)}%`, accent: '#10b981' },
-          ].map(({ icon, label, value, accent }) => (
+            {
+              icon: <MessageCircle size={18} />,
+              label: 'Clientes atendidos',
+              value: globalConversations.toLocaleString('es-ES'),
+              sub: 'Historial total',
+              accent: '#c026a8',
+            },
+            {
+              icon: <Moon size={18} />,
+              label: 'Fuera de horario',
+              value: globalFueraHorario.toLocaleString('es-ES'),
+              sub: `${Math.round((globalFueraHorario / globalConversations) * 100)}% del total`,
+              accent: '#7c3aed',
+            },
+            {
+              icon: <Zap size={18} />,
+              label: 'Respuesta media',
+              value: fmtTime(globalAvgResponse),
+              sub: 'Promedio global',
+              accent: '#0ea5e9',
+            },
+            {
+              icon: <Clock size={18} />,
+              label: 'Resolución autónoma',
+              value: `${Math.round(globalResolution * 100)}%`,
+              sub: 'Sin escalar al humano',
+              accent: '#10b981',
+            },
+          ].map(({ icon, label, value, sub, accent }) => (
             <NodoCard key={label} padding="sm">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${accent}18` }}>
@@ -109,6 +134,7 @@ export function MasterMetricsPage() {
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-[#6d7ab5] leading-none mb-1.5">{label}</p>
                   <p className="text-2xl font-bold text-[#1e1b4b] leading-none font-syne">{value}</p>
+                  <p className="text-[10px] text-[#6d7ab5] mt-1">{sub}</p>
                 </div>
               </div>
             </NodoCard>
