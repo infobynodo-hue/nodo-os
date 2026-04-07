@@ -202,7 +202,7 @@ export function MasterMetricsPage() {
                       <td className="py-3 px-3 text-right">
                         <span
                           className="text-sm"
-                          style={{ color: cm.avg_response_ms <= 30000 ? '#10b981' : cm.avg_response_ms <= 45000 ? '#f59e0b' : '#ef4444' }}
+                          style={{ color: cm.avg_response_ms <= 40000 ? '#10b981' : cm.avg_response_ms <= 60000 ? '#f59e0b' : '#ef4444' }}
                         >
                           {fmtTime(cm.avg_response_ms)}
                         </span>
