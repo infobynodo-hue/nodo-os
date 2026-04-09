@@ -58,10 +58,11 @@ const COUNTRY_FLAGS: Record<string, string> = {
 function getFlag(country: string) { return COUNTRY_FLAGS[country] ?? '🌍' }
 
 const DEMO_COUNTRIES = [
-  { country: 'España',    count: 8 },
-  { country: 'México',    count: 4 },
-  { country: 'Argentina', count: 3 },
-  { country: 'Colombia',  count: 2 },
+  { country: 'España',    count: 6 },
+  { country: 'Colombia',  count: 3 },
+  { country: 'México',    count: 1 },
+  { country: 'Argentina', count: 1 },
+  { country: 'Portugal',  count: 1 },
 ]
 const DEMO_SECTORS_DIST = [
   { sector: 'Clínicas dentales',   count: 3 },
@@ -274,8 +275,10 @@ export function DashboardPage() {
         if (c.country) byCountry[c.country] = (byCountry[c.country] || 0) + 1
         if (c.sector)  bySector[c.sector]   = (bySector[c.sector]   || 0) + 1
       })
-      setCountryData(Object.entries(byCountry).sort(([,a],[,b]) => b-a).map(([country,count]) => ({ country, count })))
-      setSectorData(Object.entries(bySector).sort(([,a],[,b]) => b-a).slice(0,6).map(([sector,count]) => ({ sector, count })))
+      const realCountries = Object.entries(byCountry).sort(([,a],[,b]) => b-a).map(([country,count]) => ({ country, count }))
+      const realSectors   = Object.entries(bySector).sort(([,a],[,b]) => b-a).slice(0,6).map(([sector,count]) => ({ sector, count }))
+      setCountryData(realCountries.length >= 5 ? realCountries : DEMO_COUNTRIES)
+      setSectorData(realSectors.length >= 5 ? realSectors : DEMO_SECTORS_DIST)
 
       // Load health scores — table uses project_id, map back to client_id via loaded projects
       const { data: hs } = await supabase.from('client_health_scores').select('project_id, score')
