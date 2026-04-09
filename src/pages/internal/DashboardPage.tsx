@@ -277,8 +277,8 @@ export function DashboardPage() {
       })
       const realCountries = Object.entries(byCountry).sort(([,a],[,b]) => b-a).map(([country,count]) => ({ country, count }))
       const realSectors   = Object.entries(bySector).sort(([,a],[,b]) => b-a).slice(0,6).map(([sector,count]) => ({ sector, count }))
-      setCountryData(realCountries.length >= 5 ? realCountries : DEMO_COUNTRIES)
-      setSectorData(realSectors.length >= 5 ? realSectors : DEMO_SECTORS_DIST)
+      setCountryData(realCountries.length > 0 ? realCountries : DEMO_COUNTRIES)
+      setSectorData(realSectors.length > 0 ? realSectors : DEMO_SECTORS_DIST)
 
       // Load health scores — table uses project_id, map back to client_id via loaded projects
       const { data: hs } = await supabase.from('client_health_scores').select('project_id, score')
