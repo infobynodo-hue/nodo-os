@@ -64,11 +64,12 @@ const DEMO_COUNTRIES = [
   { country: 'Colombia',  count: 2 },
 ]
 const DEMO_SECTORS_DIST = [
-  { sector: 'Clínicas dentales',  count: 4 },
-  { sector: 'Salud y bienestar',  count: 3 },
-  { sector: 'Estética y belleza', count: 2 },
-  { sector: 'Inmobiliaria',       count: 2 },
-  { sector: 'Deporte y fitness',  count: 1 },
+  { sector: 'Clínicas dentales',   count: 3 },
+  { sector: 'Salud y bienestar',   count: 2 },
+  { sector: 'Deporte y fitness',   count: 2 },
+  { sector: 'Alquiler náutico',    count: 1 },
+  { sector: 'Concesionario',       count: 1 },
+  { sector: 'Estética y belleza',  count: 1 },
 ]
 
 const DEMO_MRR = [
