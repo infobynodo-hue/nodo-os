@@ -668,6 +668,155 @@ function ConversationsTab({
       })
   }, [projectId, selectedPlug])
 
+  const SUMMARY_PROMPTS: Record<PlugTab, { system: string; maxTokens: number; docTitle: string }> = {
+    onboarding: {
+      docTitle: 'Documento de Onboarding',
+      maxTokens: 4096,
+      system: `Eres un especialista de NODO ONE en configuración de agentes de IA. Analiza esta conversación de onboarding y genera un documento ejecutivo completo en español.
+
+INSTRUCCIÓN CRÍTICA: Solo incluye las secciones que tengan información real mencionada en la conversación. Si una sección no tiene datos, omítela completamente — no escribas "no especificado" ni dejes secciones vacías.
+
+Estructura (incluir solo si hay datos):
+
+## DATOS DEL NEGOCIO
+Nombre comercial, sector, descripción del negocio, ubicación, horarios de atención.
+
+## PRODUCTO / SERVICIO
+Qué ofrece exactamente, catálogo, precios, planes, tarifas, condiciones.
+
+## PÚBLICO OBJETIVO
+Perfil del cliente ideal, rango de edad, necesidades, características principales.
+
+## PERSONALIDAD DEL AGENTE
+Nombre del agente, tono de comunicación, estilo, cómo debe presentarse, qué transmitir.
+
+## PREGUNTAS FRECUENTES
+Lista de preguntas frecuentes identificadas con su respuesta correcta.
+
+## INSTRUCCIONES OPERATIVAS
+Procesos internos, cómo gestionar leads, pasos de atención, flujos de trabajo.
+
+## PROHIBICIONES Y RESTRICCIONES
+Qué no debe hacer ni decir el agente bajo ninguna circunstancia.
+
+## ALERTAS Y ESCALAMIENTO
+Cuándo derivar a humano, casos que requieren atención manual, protocolos de urgencia.
+
+## ESTADO DEL ONBOARDING
+Qué información se ha recopilado correctamente y qué falta completar.
+
+## PRÓXIMOS PASOS
+Acciones concretas pendientes para el equipo NODO ONE.
+
+Sé exhaustivo y detallado en cada sección que incluyas. El documento debe ser profesional y listo para usar como referencia de configuración.`,
+    },
+    report_error: {
+      docTitle: 'Informe de Errores del Agente',
+      maxTokens: 2048,
+      system: `Eres un analista de NODO ONE. Analiza esta conversación donde el cliente reportó errores de su agente de IA y genera un informe estructurado en español.
+
+Extrae ÚNICAMENTE los errores que el cliente confirmó o describió. Ignora los errores que el cliente descartó o que resultaron no ser errores.
+
+## ERRORES CONFIRMADOS
+Lista numerada. Por cada error incluye:
+- **Descripción**: qué respondió mal el agente
+- **Contexto**: en qué situación ocurrió
+- **Impacto**: cómo afectó al cliente o al usuario final
+- **Frecuencia**: si mencionó si ocurre a menudo o fue puntual
+
+## PATRÓN GENERAL
+Si hay un patrón común entre los errores, descríbelo brevemente.
+
+## ACCIONES RECOMENDADAS
+Qué debe corregirse en la base de conocimiento o configuración del agente.
+
+Solo incluye secciones con información real de la conversación.`,
+    },
+    request_change: {
+      docTitle: 'Solicitudes de Cambio',
+      maxTokens: 2048,
+      system: `Eres un gestor de proyectos de NODO ONE. Analiza esta conversación donde el cliente solicitó cambios en su agente de IA.
+
+## CAMBIOS SOLICITADOS
+Lista numerada. Por cada cambio:
+- **Qué cambiar**: descripción clara del cambio pedido
+- **Motivo**: por qué lo solicita (si lo mencionó)
+- **Prioridad percibida**: urgente / normal / cuando se pueda
+- **Estado**: pendiente de aplicar / ya confirmado
+
+## CONTEXTO ADICIONAL
+Información relevante que el cliente aportó para entender mejor los cambios.
+
+## ACCIONES PARA EL EQUIPO
+Qué hay que modificar concretamente en el sistema.
+
+Solo incluye secciones con información real.`,
+    },
+    new_info: {
+      docTitle: 'Nueva Información para el Agente',
+      maxTokens: 2048,
+      system: `Eres un gestor de conocimiento de NODO ONE. Analiza esta conversación donde el cliente quiso añadir nueva información a su agente.
+
+## INFORMACIÓN NUEVA APORTADA
+Resumen del contenido que el cliente quiere que aprenda el agente. Organízalo por categorías si aplica (servicios, precios, horarios, FAQs, etc.)
+
+## CATEGORÍA SUGERIDA
+A qué categoría de la base de conocimiento pertenece esta información.
+
+## INSTRUCCIONES DE IMPLEMENTACIÓN
+Cómo debería integrarse esta información en el agente (si el cliente dio indicaciones).
+
+Solo incluye lo que realmente aportó el cliente en la conversación.`,
+    },
+    schedule_meeting: {
+      docTitle: 'Solicitud de Reunión',
+      maxTokens: 1024,
+      system: `Analiza esta conversación donde el cliente solicitó una reunión con el equipo NODO ONE y extrae:
+
+## DETALLES DE LA REUNIÓN
+- Fecha y hora acordada (o propuesta)
+- Formato: llamada / videollamada / presencial
+- Duración estimada si se mencionó
+- Plataforma preferida (Zoom, Meet, Teams, etc.)
+
+## MOTIVO
+Por qué solicita la reunión, qué quiere tratar.
+
+## PARTICIPANTES
+Quién debe asistir por parte de NODO ONE si lo especificó.
+
+## NOTAS PREVIAS
+Información o materiales que el cliente quiere revisar en la reunión.
+
+Solo incluye lo que se mencionó en la conversación.`,
+    },
+    general_review: {
+      docTitle: 'Revisión Mensual',
+      maxTokens: 2048,
+      system: `Eres un analista de NODO ONE. Analiza esta conversación de revisión mensual del cliente y genera un informe ejecutivo.
+
+## VALORACIÓN DEL CLIENTE
+Cómo evalúa el desempeño del agente este mes, puntuación si la dio, comentarios generales.
+
+## PUNTOS POSITIVOS
+Qué está funcionando bien según el cliente.
+
+## PUNTOS DE MEJORA
+Qué no está funcionando o podría mejorar.
+
+## ACUERDOS DEL MES
+Cambios, ajustes o acciones acordadas durante esta revisión.
+
+## MÉTRICAS MENCIONADAS
+Si el cliente hizo referencia a datos de rendimiento, conversaciones, etc.
+
+## PRÓXIMOS PASOS
+Compromisos concretos del equipo NODO ONE para el próximo período.
+
+Solo incluye secciones con información real de la conversación.`,
+    },
+  }
+
   async function generateSummary() {
     if (!messages.length) return
     setSummarizing(true)
@@ -675,7 +824,7 @@ function ConversationsTab({
       const transcript = messages
         .map(m => `${m.role === 'user' ? 'CLIENTE' : 'ASISTENTE'}: ${m.content}`)
         .join('\n\n')
-
+      const cfg = SUMMARY_PROMPTS[selectedPlug]
       const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -686,21 +835,10 @@ function ConversationsTab({
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2048,
-          system: `Eres un asistente de NODO ONE. Analiza la siguiente conversación de onboarding entre un cliente y el asistente de IA, y genera un resumen ejecutivo estructurado en español con la siguiente información:
-
-1. DATOS DEL NEGOCIO — nombre, sector, descripción, ubicación, horarios
-2. PRODUCTO / SERVICIO — qué vende o ofrece, precios si se mencionan
-3. PÚBLICO OBJETIVO — a quién va dirigido
-4. PERSONALIDAD DEL AGENTE — tono, estilo de comunicación deseado
-5. PREGUNTAS FRECUENTES IDENTIFICADAS — las que el cliente mencionó o el agente detectó
-6. INSTRUCCIONES ESPECIALES — prohibiciones, alertas, protocolos
-7. ESTADO DEL ONBOARDING — qué información falta, qué está completo
-8. PRÓXIMOS PASOS RECOMENDADOS
-
-Sé conciso pero completo. Usa formato claro con secciones y bullets.`,
-          messages: [{ role: 'user', content: `Conversación de onboarding de ${businessName || 'el cliente'}:\n\n${transcript}` }],
+          model: selectedPlug === 'onboarding' ? 'claude-sonnet-4-5' : 'claude-haiku-4-5-20251001',
+          max_tokens: cfg.maxTokens,
+          system: cfg.system,
+          messages: [{ role: 'user', content: `Conversación de ${businessName || 'el cliente'}:\n\n${transcript}` }],
         }),
       })
       const data = await res.json() as { content: Array<{ text: string }> }
@@ -714,58 +852,68 @@ Sé conciso pero completo. Usa formato claro con secciones y bullets.`,
 
   function exportPDF() {
     if (!summary) return
+    const cfg = SUMMARY_PROMPTS[selectedPlug]
     const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+    const contentHtml = summary
+      .split('\n')
+      .map(line => {
+        if (/^##\s/.test(line.trim())) return `<h2>${line.replace(/^##\s/, '')}</h2>`
+        if (/^###\s/.test(line.trim())) return `<h3>${line.replace(/^###\s/, '')}</h3>`
+        if (/^\*\*(.+)\*\*:?$/.test(line.trim())) return `<h3>${line.replace(/\*\*/g, '')}</h3>`
+        if (line.startsWith('- ') || line.startsWith('• ')) return `<li>${line.replace(/^[-•]\s+/, '').replace(/\*\*/g, '<strong>').replace(/\*\*/g, '</strong>')}</li>`
+        if (/^\d+\.\s/.test(line.trim())) return `<li class="numbered">${line.replace(/^\d+\.\s/, '')}</li>`
+        if (line.trim() === '') return '<div class="spacer"></div>'
+        return `<p>${line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`
+      })
+      .join('\n')
+
     const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <title>Resumen Onboarding — ${businessName || 'Cliente'}</title>
+  <title>${cfg.docTitle} — ${businessName || 'Cliente'}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1827; background: white; padding: 48px; max-width: 800px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 24px; border-bottom: 2px solid #C026A8; margin-bottom: 32px; }
-    .brand { font-size: 22px; font-weight: 800; color: #1a1827; letter-spacing: 1px; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1827; background: white; padding: 48px; max-width: 820px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 20px; border-bottom: 3px solid #C026A8; margin-bottom: 36px; }
+    .brand { font-size: 24px; font-weight: 900; color: #1a1827; letter-spacing: 2px; }
     .brand span { color: #C026A8; }
-    .meta { text-align: right; font-size: 12px; color: #6b6b80; }
-    .meta strong { display: block; font-size: 14px; color: #1a1827; margin-bottom: 2px; }
-    h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #C026A8; margin: 24px 0 10px; }
-    p { font-size: 13px; line-height: 1.7; color: #374151; }
-    ul { margin: 6px 0 0 16px; }
-    li { font-size: 13px; line-height: 1.7; color: #374151; margin-bottom: 2px; }
-    .section { background: #f9f8ff; border-left: 3px solid #C026A8; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 8px; }
-    .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e8e6f0; font-size: 11px; color: #9ca3af; text-align: center; }
-    @media print { body { padding: 24px; } }
+    .brand-sub { font-size: 11px; color: #9ca3af; margin-top: 3px; letter-spacing: 0.5px; }
+    .meta { text-align: right; }
+    .meta-title { font-size: 15px; font-weight: 700; color: #1a1827; margin-bottom: 4px; }
+    .meta-client { font-size: 13px; color: #C026A8; font-weight: 600; }
+    .meta-date { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    h2 { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #C026A8; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #f0eefa; }
+    h3 { font-size: 13px; font-weight: 700; color: #1a1827; margin: 12px 0 4px; }
+    p { font-size: 13px; line-height: 1.75; color: #374151; margin-bottom: 4px; }
+    li { font-size: 13px; line-height: 1.75; color: #374151; margin: 3px 0 3px 20px; }
+    li.numbered { list-style: decimal; }
+    li:not(.numbered) { list-style: disc; }
+    strong { color: #1a1827; font-weight: 600; }
+    .spacer { height: 6px; }
+    .footer { margin-top: 52px; padding-top: 14px; border-top: 1px solid #e8e6f0; font-size: 10px; color: #9ca3af; text-align: center; display: flex; justify-content: space-between; }
+    @media print { body { padding: 28px; } }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
       <div class="brand">NODO <span>ONE</span></div>
-      <div style="font-size:12px;color:#6b6b80;margin-top:4px">Plataforma de gestión de servicios</div>
+      <div class="brand-sub">Plataforma de gestión de servicios</div>
     </div>
     <div class="meta">
-      <strong>Resumen de Onboarding</strong>
-      ${businessName ? `<div>${businessName}</div>` : ''}
-      ${contactName ? `<div>${contactName}</div>` : ''}
-      <div>${date}</div>
+      <div class="meta-title">${cfg.docTitle}</div>
+      ${businessName ? `<div class="meta-client">${businessName}</div>` : ''}
+      ${contactName ? `<div style="font-size:12px;color:#6b7280">${contactName}</div>` : ''}
+      <div class="meta-date">${date}</div>
     </div>
   </div>
-  <div class="content">
-    ${summary
-      .split('\n')
-      .map(line => {
-        if (/^\d+\.\s+[A-ZÁÉÍÓÚÑ\s/]+$/.test(line.trim()) || /^#+\s/.test(line.trim())) {
-          return `<h2>${line.replace(/^#+\s/, '').replace(/^\d+\.\s+/, '')}</h2>`
-        }
-        if (line.startsWith('- ') || line.startsWith('• ')) {
-          return `<li>${line.replace(/^[-•]\s+/, '')}</li>`
-        }
-        if (line.trim() === '') return '<br/>'
-        return `<p>${line}</p>`
-      })
-      .join('\n')}
+  <div class="content">${contentHtml}</div>
+  <div class="footer">
+    <span>Generado por NODO ONE</span>
+    <span>${date}</span>
+    <span>Documento confidencial</span>
   </div>
-  <div class="footer">Generado por NODO ONE · ${date} · Documento confidencial</div>
 </body>
 </html>`
 
@@ -819,36 +967,34 @@ Sé conciso pero completo. Usa formato claro con secciones y bullets.`,
         </NodoCard>
       ) : (
         <div className="space-y-4">
-          {/* Action bar — resumen IA solo para onboarding */}
+          {/* Action bar — disponible en todos los plugs */}
           <div className="flex items-center justify-between">
             <p className="text-xs text-[#9CA3AF]">
               {messages.length} mensajes · {messages.filter(m => m.role === 'user').length} del cliente
             </p>
-            {selectedPlug === 'onboarding' && (
-              <div className="flex gap-2">
+            <div className="flex gap-2">
+              <button
+                onClick={generateSummary}
+                disabled={summarizing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E2433] text-[#C8F135] text-xs font-medium hover:bg-[#252d3f] transition-colors disabled:opacity-50"
+              >
+                {summarizing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {summarizing ? 'Analizando...' : 'Generar resumen IA'}
+              </button>
+              {summary && (
                 <button
-                  onClick={generateSummary}
-                  disabled={summarizing}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E2433] text-[#C8F135] text-xs font-medium hover:bg-[#252d3f] transition-colors disabled:opacity-50"
+                  onClick={exportPDF}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C026A8] text-white text-xs font-medium hover:bg-[#A01E8E] transition-colors"
                 >
-                  {summarizing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                  {summarizing ? 'Analizando...' : 'Generar resumen IA'}
+                  <FileDown size={12} />
+                  Exportar PDF
                 </button>
-                {summary && (
-                  <button
-                    onClick={exportPDF}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C026A8] text-white text-xs font-medium hover:bg-[#A01E8E] transition-colors"
-                  >
-                    <FileDown size={12} />
-                    Exportar PDF
-                  </button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* AI Summary (onboarding only) */}
-          {summary && selectedPlug === 'onboarding' && (
+          {/* AI Summary */}
+          {summary && (
             <NodoCard className="border border-[#C8F135]/20 bg-[#0f1623]">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles size={14} className="text-[#C8F135]" />
