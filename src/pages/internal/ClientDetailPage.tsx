@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft, LayoutDashboard, GitBranch, MessageSquare,
   Brain, Send, CreditCard, Puzzle, MoreVertical, Pencil, Power,
-  Upload, Loader2,
+  Upload, Loader2, Sparkles, FileDown,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
@@ -438,7 +438,12 @@ export function ClientDetailPage() {
         {/* ONBOARDING */}
         {tab === 'onboarding' && (
           <div className="fade-in">
-            <OnboardingTab projectId={project?.id} />
+            <OnboardingTab
+              projectId={project?.id}
+              businessName={client?.business_name}
+              contactName={client?.contact_name}
+              serviceType={project?.service_type}
+            />
           </div>
         )}
 
@@ -607,9 +612,18 @@ export function ClientDetailPage() {
 }
 
 // Sub-component: Onboarding tab
-function OnboardingTab({ projectId }: { projectId?: string }) {
+function OnboardingTab({
+  projectId, businessName, contactName, serviceType,
+}: {
+  projectId?: string
+  businessName?: string
+  contactName?: string
+  serviceType?: string
+}) {
   const [messages, setMessages] = useState<{ role: string; content: string; created_at: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [summary, setSummary] = useState<string | null>(null)
+  const [summarizing, setSummarizing] = useState(false)
 
   useEffect(() => {
     if (projectId) {
@@ -626,6 +640,114 @@ function OnboardingTab({ projectId }: { projectId?: string }) {
     }
   }, [projectId])
 
+  async function generateSummary() {
+    if (!messages.length) return
+    setSummarizing(true)
+    try {
+      const transcript = messages
+        .map(m => `${m.role === 'user' ? 'CLIENTE' : 'ASISTENTE'}: ${m.content}`)
+        .join('\n\n')
+
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2048,
+          system: `Eres un asistente de NODO ONE. Analiza la siguiente conversación de onboarding entre un cliente y el asistente de IA, y genera un resumen ejecutivo estructurado en español con la siguiente información:
+
+1. DATOS DEL NEGOCIO — nombre, sector, descripción, ubicación, horarios
+2. PRODUCTO / SERVICIO — qué vende o ofrece, precios si se mencionan
+3. PÚBLICO OBJETIVO — a quién va dirigido
+4. PERSONALIDAD DEL AGENTE — tono, estilo de comunicación deseado
+5. PREGUNTAS FRECUENTES IDENTIFICADAS — las que el cliente mencionó o el agente detectó
+6. INSTRUCCIONES ESPECIALES — prohibiciones, alertas, protocolos
+7. ESTADO DEL ONBOARDING — qué información falta, qué está completo
+8. PRÓXIMOS PASOS RECOMENDADOS
+
+Sé conciso pero completo. Usa formato claro con secciones y bullets.`,
+          messages: [{ role: 'user', content: `Conversación de onboarding de ${businessName || 'el cliente'}:\n\n${transcript}` }],
+        }),
+      })
+      const data = await res.json() as { content: Array<{ text: string }> }
+      setSummary(data.content[0].text)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSummarizing(false)
+    }
+  }
+
+  function exportPDF() {
+    if (!summary) return
+    const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Resumen Onboarding — ${businessName || 'Cliente'}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1827; background: white; padding: 48px; max-width: 800px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 24px; border-bottom: 2px solid #C026A8; margin-bottom: 32px; }
+    .brand { font-size: 22px; font-weight: 800; color: #1a1827; letter-spacing: 1px; }
+    .brand span { color: #C026A8; }
+    .meta { text-align: right; font-size: 12px; color: #6b6b80; }
+    .meta strong { display: block; font-size: 14px; color: #1a1827; margin-bottom: 2px; }
+    h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #C026A8; margin: 24px 0 10px; }
+    p { font-size: 13px; line-height: 1.7; color: #374151; }
+    ul { margin: 6px 0 0 16px; }
+    li { font-size: 13px; line-height: 1.7; color: #374151; margin-bottom: 2px; }
+    .section { background: #f9f8ff; border-left: 3px solid #C026A8; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 8px; }
+    .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e8e6f0; font-size: 11px; color: #9ca3af; text-align: center; }
+    @media print { body { padding: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">NODO <span>ONE</span></div>
+      <div style="font-size:12px;color:#6b6b80;margin-top:4px">Plataforma de gestión de servicios</div>
+    </div>
+    <div class="meta">
+      <strong>Resumen de Onboarding</strong>
+      ${businessName ? `<div>${businessName}</div>` : ''}
+      ${contactName ? `<div>${contactName}</div>` : ''}
+      <div>${date}</div>
+    </div>
+  </div>
+  <div class="content">
+    ${summary
+      .split('\n')
+      .map(line => {
+        if (/^\d+\.\s+[A-ZÁÉÍÓÚÑ\s/]+$/.test(line.trim()) || /^#+\s/.test(line.trim())) {
+          return `<h2>${line.replace(/^#+\s/, '').replace(/^\d+\.\s+/, '')}</h2>`
+        }
+        if (line.startsWith('- ') || line.startsWith('• ')) {
+          return `<li>${line.replace(/^[-•]\s+/, '')}</li>`
+        }
+        if (line.trim() === '') return '<br/>'
+        return `<p>${line}</p>`
+      })
+      .join('\n')}
+  </div>
+  <div class="footer">Generado por NODO ONE · ${date} · Documento confidencial</div>
+</body>
+</html>`
+
+    const win = window.open('', '_blank')
+    if (!win) return
+    win.document.write(html)
+    win.document.close()
+    setTimeout(() => win.print(), 400)
+  }
+
   if (loading) return (
     <div className="h-20 flex items-center justify-center">
       <div className="w-5 h-5 border-2 border-[#C8F135] border-t-transparent rounded-full animate-spin" />
@@ -641,21 +763,59 @@ function OnboardingTab({ projectId }: { projectId?: string }) {
   }
 
   return (
-    <div className="space-y-3">
-      {messages.map((msg, i) => (
-        <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-          <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
-            msg.role === 'user'
-              ? 'bg-[#1E2433] text-white'
-              : 'bg-white border border-[#E5E8EF] text-[#374151] shadow-[0_1px_4px_rgba(0,0,0,0.06)]'
-          }`}>
-            <p className="whitespace-pre-wrap">{msg.content}</p>
-            <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/50' : 'text-[#9CA3AF]'}`}>
-              {new Date(msg.created_at).toLocaleString('es')}
-            </p>
-          </div>
+    <div className="space-y-4">
+      {/* Action bar */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-[#9CA3AF]">{messages.length} mensajes · {messages.filter(m => m.role === 'user').length} del cliente</p>
+        <div className="flex gap-2">
+          <button
+            onClick={generateSummary}
+            disabled={summarizing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E2433] text-[#C8F135] text-xs font-medium hover:bg-[#252d3f] transition-colors disabled:opacity-50"
+          >
+            {summarizing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            {summarizing ? 'Analizando...' : 'Generar resumen IA'}
+          </button>
+          {summary && (
+            <button
+              onClick={exportPDF}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C026A8] text-white text-xs font-medium hover:bg-[#A01E8E] transition-colors"
+            >
+              <FileDown size={12} />
+              Exportar PDF
+            </button>
+          )}
         </div>
-      ))}
+      </div>
+
+      {/* AI Summary */}
+      {summary && (
+        <NodoCard className="border border-[#C8F135]/20 bg-[#0f1623]">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={14} className="text-[#C8F135]" />
+            <span className="text-xs font-semibold text-[#C8F135] uppercase tracking-wider">Resumen IA</span>
+          </div>
+          <div className="text-sm text-[#D1D5DB] whitespace-pre-wrap leading-relaxed">{summary}</div>
+        </NodoCard>
+      )}
+
+      {/* Chat transcript */}
+      <div className="space-y-3">
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
+              msg.role === 'user'
+                ? 'bg-[#1E2433] text-white'
+                : 'bg-white border border-[#E5E8EF] text-[#374151] shadow-[0_1px_4px_rgba(0,0,0,0.06)]'
+            }`}>
+              <p className="whitespace-pre-wrap">{msg.content}</p>
+              <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/50' : 'text-[#9CA3AF]'}`}>
+                {new Date(msg.created_at).toLocaleString('es')}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
