@@ -172,7 +172,7 @@ export function ClientDetailPage() {
   const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
     { id: 'fases', label: 'Fases y Tareas', icon: GitBranch },
-    { id: 'onboarding', label: 'Onboarding', icon: MessageSquare },
+    { id: 'onboarding', label: 'Conversaciones', icon: MessageSquare },
     { id: 'bot', label: 'Base del Bot', icon: Brain },
     { id: 'solicitudes', label: `Solicitudes${requests.filter(r => r.status === 'pending').length > 0 ? ` (${requests.filter(r => r.status === 'pending').length})` : ''}`, icon: Send },
     { id: 'facturacion', label: 'Facturación', icon: CreditCard },
@@ -438,7 +438,7 @@ export function ClientDetailPage() {
         {/* ONBOARDING */}
         {tab === 'onboarding' && (
           <div className="fade-in">
-            <OnboardingTab
+            <ConversationsTab
               projectId={project?.id}
               businessName={client?.business_name}
               contactName={client?.contact_name}
@@ -611,32 +611,62 @@ export function ClientDetailPage() {
 }
 
 // Sub-component: Onboarding tab
-function OnboardingTab({
+const PLUG_TABS = [
+  { id: 'onboarding',      label: '🚀 Onboarding' },
+  { id: 'report_error',    label: '🐛 Errores' },
+  { id: 'request_change',  label: '✏️ Cambios' },
+  { id: 'new_info',        label: '➕ Nueva info' },
+  { id: 'schedule_meeting','label': '📅 Reuniones' },
+  { id: 'general_review',  label: '📊 Revisiones' },
+] as const
+type PlugTab = typeof PLUG_TABS[number]['id']
+
+function ConversationsTab({
   projectId, businessName, contactName,
 }: {
   projectId?: string
   businessName?: string
   contactName?: string
 }) {
+  const [selectedPlug, setSelectedPlug] = useState<PlugTab>('onboarding')
   const [messages, setMessages] = useState<{ role: string; content: string; created_at: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState<string | null>(null)
   const [summarizing, setSummarizing] = useState(false)
+  const [msgCounts, setMsgCounts] = useState<Record<string, number>>({})
 
+  // Load message counts for all plugs (badge)
   useEffect(() => {
-    if (projectId) {
-      supabase
-        .from('chat_messages')
-        .select('role, content, created_at')
-        .eq('project_id', projectId)
-        .eq('session_type', 'onboarding')
-        .order('created_at')
-        .then(({ data }) => {
-          setMessages(data || [])
-          setLoading(false)
+    if (!projectId) return
+    supabase
+      .from('chat_messages')
+      .select('session_type')
+      .eq('project_id', projectId)
+      .then(({ data }) => {
+        const counts: Record<string, number> = {}
+        ;(data || []).forEach((m: { session_type: string }) => {
+          counts[m.session_type] = (counts[m.session_type] || 0) + 1
         })
-    }
+        setMsgCounts(counts)
+      })
   }, [projectId])
+
+  // Load messages for selected plug
+  useEffect(() => {
+    if (!projectId) return
+    setLoading(true)
+    setSummary(null)
+    supabase
+      .from('chat_messages')
+      .select('role, content, created_at')
+      .eq('project_id', projectId)
+      .eq('session_type', selectedPlug)
+      .order('created_at')
+      .then(({ data }) => {
+        setMessages(data || [])
+        setLoading(false)
+      })
+  }, [projectId, selectedPlug])
 
   async function generateSummary() {
     if (!messages.length) return
@@ -746,74 +776,107 @@ Sé conciso pero completo. Usa formato claro con secciones y bullets.`,
     setTimeout(() => win.print(), 400)
   }
 
-  if (loading) return (
-    <div className="h-20 flex items-center justify-center">
-      <div className="w-5 h-5 border-2 border-[#C8F135] border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
-
-  if (messages.length === 0) {
-    return (
-      <NodoCard className="text-center py-10">
-        <p className="text-sm text-[#9CA3AF]">El cliente aún no ha iniciado el onboarding.</p>
-      </NodoCard>
-    )
-  }
+  const plugLabel = PLUG_TABS.find(p => p.id === selectedPlug)?.label ?? selectedPlug
 
   return (
     <div className="space-y-4">
-      {/* Action bar */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-[#9CA3AF]">{messages.length} mensajes · {messages.filter(m => m.role === 'user').length} del cliente</p>
-        <div className="flex gap-2">
-          <button
-            onClick={generateSummary}
-            disabled={summarizing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E2433] text-[#C8F135] text-xs font-medium hover:bg-[#252d3f] transition-colors disabled:opacity-50"
-          >
-            {summarizing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-            {summarizing ? 'Analizando...' : 'Generar resumen IA'}
-          </button>
-          {summary && (
+      {/* Plug selector pills */}
+      <div className="flex gap-2 flex-wrap">
+        {PLUG_TABS.map(plug => {
+          const count = msgCounts[plug.id] || 0
+          const isActive = selectedPlug === plug.id
+          return (
             <button
-              onClick={exportPDF}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C026A8] text-white text-xs font-medium hover:bg-[#A01E8E] transition-colors"
+              key={plug.id}
+              onClick={() => setSelectedPlug(plug.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                isActive
+                  ? 'bg-[#1E2433] text-[#C8F135] border-[#C8F135]/30'
+                  : 'bg-[#F4F6F9] text-[#6B7280] border-[#E5E8EF] hover:border-[#C8F135]/40 hover:text-[#1A1F2E]'
+              }`}
             >
-              <FileDown size={12} />
-              Exportar PDF
+              {plug.label}
+              {count > 0 && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+                  isActive ? 'bg-[#C8F135]/20 text-[#C8F135]' : 'bg-[#E5E8EF] text-[#9CA3AF]'
+                }`}>
+                  {count}
+                </span>
+              )}
             </button>
-          )}
+          )
+        })}
+      </div>
+
+      {loading ? (
+        <div className="h-20 flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-[#C8F135] border-t-transparent rounded-full animate-spin" />
         </div>
-      </div>
-
-      {/* AI Summary */}
-      {summary && (
-        <NodoCard className="border border-[#C8F135]/20 bg-[#0f1623]">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={14} className="text-[#C8F135]" />
-            <span className="text-xs font-semibold text-[#C8F135] uppercase tracking-wider">Resumen IA</span>
-          </div>
-          <div className="text-sm text-[#D1D5DB] whitespace-pre-wrap leading-relaxed">{summary}</div>
+      ) : messages.length === 0 ? (
+        <NodoCard className="text-center py-10">
+          <p className="text-2xl mb-2">💬</p>
+          <p className="text-sm text-[#9CA3AF]">Sin conversaciones en {plugLabel}</p>
         </NodoCard>
-      )}
-
-      {/* Chat transcript */}
-      <div className="space-y-3">
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
-              msg.role === 'user'
-                ? 'bg-[#1E2433] text-white'
-                : 'bg-white border border-[#E5E8EF] text-[#374151] shadow-[0_1px_4px_rgba(0,0,0,0.06)]'
-            }`}>
-              <p className="whitespace-pre-wrap">{msg.content}</p>
-              <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/50' : 'text-[#9CA3AF]'}`}>
-                {new Date(msg.created_at).toLocaleString('es')}
-              </p>
-            </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Action bar — resumen IA solo para onboarding */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-[#9CA3AF]">
+              {messages.length} mensajes · {messages.filter(m => m.role === 'user').length} del cliente
+            </p>
+            {selectedPlug === 'onboarding' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={generateSummary}
+                  disabled={summarizing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E2433] text-[#C8F135] text-xs font-medium hover:bg-[#252d3f] transition-colors disabled:opacity-50"
+                >
+                  {summarizing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  {summarizing ? 'Analizando...' : 'Generar resumen IA'}
+                </button>
+                {summary && (
+                  <button
+                    onClick={exportPDF}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C026A8] text-white text-xs font-medium hover:bg-[#A01E8E] transition-colors"
+                  >
+                    <FileDown size={12} />
+                    Exportar PDF
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-        ))}
-      </div>
+
+          {/* AI Summary (onboarding only) */}
+          {summary && selectedPlug === 'onboarding' && (
+            <NodoCard className="border border-[#C8F135]/20 bg-[#0f1623]">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles size={14} className="text-[#C8F135]" />
+                <span className="text-xs font-semibold text-[#C8F135] uppercase tracking-wider">Resumen IA</span>
+              </div>
+              <div className="text-sm text-[#D1D5DB] whitespace-pre-wrap leading-relaxed">{summary}</div>
+            </NodoCard>
+          )}
+
+          {/* Chat transcript */}
+          <div className="space-y-3">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
+                  msg.role === 'user'
+                    ? 'bg-[#1E2433] text-white'
+                    : 'bg-white border border-[#E5E8EF] text-[#374151] shadow-[0_1px_4px_rgba(0,0,0,0.06)]'
+                }`}>
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/50' : 'text-[#9CA3AF]'}`}>
+                    {new Date(msg.created_at).toLocaleString('es')}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
