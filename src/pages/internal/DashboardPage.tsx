@@ -135,7 +135,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [user?.id, user?.role])
 
   async function loadData() {
     setLoading(true)
@@ -175,133 +175,128 @@ export function DashboardPage() {
         return
       }
 
-      let query = supabase
+      // Si es técnico necesitamos sus client_ids primero (única query bloqueante)
+      let clientIds: string[] | null = null
+      if (user?.role === 'tecnico') {
+        const { data: techProjects } = await supabase
+          .from('projects').select('client_id').eq('assigned_tech', user.id)
+        clientIds = techProjects?.map((p: { client_id: string }) => p.client_id) || []
+      }
+
+      let clientsQuery = supabase
         .from('clients')
         .select('*, projects(id, service_type, status, progress_pct, duration_months, start_date, end_date, monthly_price, total_price, current_phase, assigned_tech, created_at, client_id)')
         .eq('is_active', true)
         .order('created_at', { ascending: false })
+      if (clientIds !== null && clientIds.length > 0) clientsQuery = clientsQuery.in('id', clientIds)
 
-      if (user?.role === 'tecnico') {
-        const { data: techProjects } = await supabase
-          .from('projects')
-          .select('client_id')
-          .eq('assigned_tech', user.id)
-        const clientIds = techProjects?.map(p => p.client_id) || []
-        if (clientIds.length > 0) query = query.in('id', clientIds)
-      }
+      // ── Todas las queries independientes en paralelo ────────────────
+      const today = new Date().toISOString().split('T')[0]
+      const [
+        { data },
+        { count: pendingRequests },
+        { data: billingRaw },
+        { data: leadsRaw },
+        { data: techData },
+        { data: hs },
+        { data: pendingRaw },
+      ] = await Promise.all([
+        clientsQuery,
+        supabase.from('plug_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('billing_records').select('period_month, amount, status').eq('status', 'paid').order('period_month', { ascending: true }),
+        supabase.from('leads').select('status'),
+        supabase.from('internal_users').select('id, full_name').eq('is_active', true),
+        supabase.from('client_health_scores').select('project_id, score'),
+        supabase.from('lead_activities').select('*, leads(business_name)').eq('status', 'pendiente').lte('scheduled_at', `${today}T23:59:59Z`).order('scheduled_at', { ascending: true }),
+      ])
 
-      const { data } = await query
+      // ── Procesar clientes ───────────────────────────────────────────
       const clientsData: ClientWithProject[] = (data || []).map((c: Client & { projects?: Project[] }) => ({
-        ...c,
-        project: c.projects?.[0],
+        ...c, project: c.projects?.[0],
       }))
       setClients(clientsData)
 
+      // ── Stats ───────────────────────────────────────────────────────
       const active = clientsData.filter(c => c.project?.status === 'active').length
       const completed = clientsData.filter(c => c.project?.status === 'completed').length
-      const { count: pendingRequests } = await supabase
-        .from('plug_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
-
       setStats({ total: clientsData.length, active, completed, pending_requests: pendingRequests || 0 })
 
-      // ── Donut: estado de clientes ──────────────────────────────────
-      const statusGroups = ['active','paused','completed','cancelled'].map(s => ({
-        name: s === 'active' ? 'Activos' : s === 'paused' ? 'Pausados' : s === 'completed' ? 'Completados' : 'Cancelados',
-        value: clientsData.filter(c => c.project?.status === s).length,
-        status: s,
-      })).filter(g => g.value > 0)
-      setClientStatusData(statusGroups)
+      // ── Donut estado ────────────────────────────────────────────────
+      setClientStatusData(
+        ['active','paused','completed','cancelled']
+          .map(s => ({
+            name: s === 'active' ? 'Activos' : s === 'paused' ? 'Pausados' : s === 'completed' ? 'Completados' : 'Cancelados',
+            value: clientsData.filter(c => c.project?.status === s).length,
+            status: s,
+          }))
+          .filter(g => g.value > 0)
+      )
 
-      // ── LineChart: MRR últimos 6 meses ─────────────────────────────
-      const { data: billingRaw } = await supabase
-        .from('billing_records')
-        .select('period_month, amount, status')
-        .eq('status', 'paid')
-        .order('period_month', { ascending: true })
+      // ── MRR ─────────────────────────────────────────────────────────
       if (billingRaw && billingRaw.length > 0) {
-        // period_month is INTEGER: 202510 = Oct 2025
         const byMonth: Record<string, number> = {}
         billingRaw.forEach((r: { period_month: number; amount: number }) => {
           const m = r.period_month
-          const year = Math.floor(m / 100)
-          const mo = String(m % 100).padStart(2, '0')
-          const key = `${year}-${mo}`
+          const key = `${Math.floor(m / 100)}-${String(m % 100).padStart(2, '0')}`
           byMonth[key] = (byMonth[key] || 0) + Number(r.amount)
         })
-        const mrrArr = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([k, v]) => ({
-          mes: new Date(k + '-01').toLocaleDateString('es-ES', { month: 'short' }),
-          mrr: v,
-        }))
+        const mrrArr = Object.entries(byMonth).sort(([a],[b]) => a.localeCompare(b)).slice(-6)
+          .map(([k, v]) => ({ mes: new Date(k + '-01').toLocaleDateString('es-ES', { month: 'short' }), mrr: v }))
         setMrrData(mrrArr.length > 0 ? mrrArr : DEMO_MRR)
       } else {
         setMrrData(DEMO_MRR)
       }
 
-      // ── BarChart horizontal: funnel de pipeline ────────────────────
-      const { data: leadsRaw } = await supabase.from('leads').select('status')
+      // ── Pipeline ────────────────────────────────────────────────────
       if (leadsRaw && leadsRaw.length > 0) {
         const order = ['nuevo','contactado','propuesta','negociacion','cerrado_ganado']
         const byStage: Record<string, number> = {}
         leadsRaw.forEach((l: { status: string }) => { byStage[l.status] = (byStage[l.status] || 0) + 1 })
-        const funnelData = order
-          .filter(s => byStage[s])
+        const funnelData = order.filter(s => byStage[s])
           .map(s => ({ etapa: LEAD_STATUS_LABELS[s as keyof typeof LEAD_STATUS_LABELS] || s, count: byStage[s] }))
         setPipelineData(funnelData.length > 0 ? funnelData : DEMO_PIPELINE)
       } else {
         setPipelineData(DEMO_PIPELINE)
       }
 
-      // ── BarChart: carga por técnico ────────────────────────────────
-      const { data: techData } = await supabase
-        .from('internal_users')
-        .select('id, full_name')
-        .eq('is_active', true)
+      // ── Carga por técnico ───────────────────────────────────────────
       if (techData && techData.length > 0) {
-        const techLoad = techData.map((t: { id: string; full_name: string }) => ({
-          nombre: t.full_name.split(' ')[0],
-          clientes: clientsData.filter(c => c.project?.assigned_tech === t.id).length,
-        })).filter(t => t.clientes > 0)
+        const techLoad = techData
+          .map((t: { id: string; full_name: string }) => ({
+            nombre: t.full_name.split(' ')[0],
+            clientes: clientsData.filter(c => c.project?.assigned_tech === t.id).length,
+          }))
+          .filter((t: { nombre: string; clientes: number }) => t.clientes > 0)
         setTeamLoadData(techLoad.length > 0 ? techLoad : DEMO_TEAM_LOAD)
       } else {
         setTeamLoadData(DEMO_TEAM_LOAD)
       }
 
-      // ── Country + sector distribution ──────────────────────────────
+      // ── País y sector ───────────────────────────────────────────────
       const byCountry: Record<string, number> = {}
       const bySector: Record<string, number> = {}
       clientsData.forEach(c => {
         if (c.country) byCountry[c.country] = (byCountry[c.country] || 0) + 1
         if (c.sector)  bySector[c.sector]   = (bySector[c.sector]   || 0) + 1
       })
-      const realCountries = Object.entries(byCountry).sort(([,a],[,b]) => b-a).map(([country,count]) => ({ country, count }))
-      const realSectors   = Object.entries(bySector).sort(([,a],[,b]) => b-a).slice(0,6).map(([sector,count]) => ({ sector, count }))
-      setCountryData(realCountries.length > 0 ? realCountries : DEMO_COUNTRIES)
-      setSectorData(realSectors.length > 0 ? realSectors : DEMO_SECTORS_DIST)
+      setCountryData(Object.entries(byCountry).sort(([,a],[,b]) => b-a).map(([country,count]) => ({ country, count })).length > 0
+        ? Object.entries(byCountry).sort(([,a],[,b]) => b-a).map(([country,count]) => ({ country, count }))
+        : DEMO_COUNTRIES)
+      setSectorData(Object.entries(bySector).sort(([,a],[,b]) => b-a).slice(0,6).map(([sector,count]) => ({ sector, count })).length > 0
+        ? Object.entries(bySector).sort(([,a],[,b]) => b-a).slice(0,6).map(([sector,count]) => ({ sector, count }))
+        : DEMO_SECTORS_DIST)
 
-      // Load health scores — table uses project_id, map back to client_id via loaded projects
-      const { data: hs } = await supabase.from('client_health_scores').select('project_id, score')
+      // ── Health scores ───────────────────────────────────────────────
       if (hs && hs.length > 0) {
         const scores: Record<string, number> = {}
-        clientsData.forEach((c) => {
-          const proj = c.project
-          if (proj) {
-            const match = hs.find((h: { project_id: string; score: number }) => h.project_id === proj.id)
-            if (match) scores[c.id] = match.score
-          }
+        clientsData.forEach(c => {
+          const match = hs.find((h: { project_id: string; score: number }) => h.project_id === c.project?.id)
+          if (match) scores[c.id] = match.score
         })
         setHealthScores(scores)
       }
 
-      // ── Pending follow-up activities ───────────────────────────────
-      const today = new Date().toISOString().split('T')[0]
-      const { data: pendingRaw } = await supabase
-        .from('lead_activities')
-        .select('*, leads(business_name)')
-        .eq('status', 'pendiente')
-        .lte('scheduled_at', `${today}T23:59:59Z`)
-        .order('scheduled_at', { ascending: true })
+      // ── Actividades pendientes ──────────────────────────────────────
       setPendingActivities((pendingRaw as PendingActivity[]) || [])
     } finally {
       setLoading(false)
