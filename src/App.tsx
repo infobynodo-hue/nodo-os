@@ -29,6 +29,7 @@ import { ResourcesPage } from './pages/internal/ResourcesPage'
 import { GuiasPage } from './pages/internal/GuiasPage'
 import { BotTesterPage } from './pages/internal/BotTesterPage'
 import { MasterMetricsPage } from './pages/internal/MasterMetricsPage'
+import { SolicitudesPage } from './pages/internal/SolicitudesPage'
 
 // Client pages
 import { ClientDashboardPage } from './pages/client/ClientDashboardPage'
@@ -87,6 +88,7 @@ export default function App() {
           <Route path="clients/:id" element={<ClientDetailPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="tasks" element={<TasksPage />} />
+          <Route path="solicitudes" element={<SolicitudesPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="plugs" element={<PlugsPage />} />
           <Route path="leads" element={<LeadsPage />} />

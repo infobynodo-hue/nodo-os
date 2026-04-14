@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, UserCog, Puzzle, LogOut,
   Menu, X, ChevronLeft, ChevronRight, ShieldCheck, Flame,
   Eye, ArrowLeft, CheckSquare, CalendarDays, Workflow, Library, GraduationCap, BarChart2, FlaskConical,
+  Inbox,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/auth'
 import { NodoAvatar } from '../ui/NodoAvatar'
 import { NodoIsotipo } from '../ui/NodoIsotipo'
+import { supabase } from '../../lib/supabase'
 
 // ─── Nav structure ────────────────────────────────────────────────────────────
 interface NavItem {
@@ -39,8 +41,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Operaciones',
     items: [
-      { to: '/internal/tasks',    icon: CheckSquare, label: 'Tareas' },
-      { to: '/internal/calendar', icon: CalendarDays, label: 'Calendario' },
+      { to: '/internal/tasks',        icon: CheckSquare, label: 'Tareas' },
+      { to: '/internal/calendar',     icon: CalendarDays, label: 'Calendario' },
+      { to: '/internal/solicitudes',  icon: Inbox,        label: 'Solicitudes' },
     ],
   },
   {
@@ -76,6 +79,7 @@ export function InternalLayout() {
   const { user, originalUser, signOut, startImpersonation, stopImpersonation } = useAuthStore()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [pendingSolicitudes, setPendingSolicitudes] = useState(0)
   const navigate = useNavigate()
 
   const isSuperAdmin = user?.role === 'superadmin' || originalUser?.role === 'superadmin'
@@ -83,6 +87,14 @@ export function InternalLayout() {
   const isTecnicoPreview = !!originalUser && user?.role === 'tecnico'
 
   const handleSignOut = async () => { await signOut(); navigate('/login') }
+
+  useEffect(() => {
+    supabase
+      .from('plug_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .then(({ count }) => setPendingSolicitudes(count || 0))
+  }, [])
 
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
     <>
@@ -125,31 +137,43 @@ export function InternalLayout() {
               )}
 
               <div className="space-y-0.5">
-                {visibleItems.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => mobile && setMobileOpen(false)}
-                    className={({ isActive }) => `
-                      flex items-center gap-3 rounded-xl transition-all duration-150
-                      ${collapsed && !mobile ? 'px-0 justify-center py-2.5' : 'px-3 py-2.5'}
-                      ${isActive
-                        ? 'bg-[#C8F135] text-[#1A1F2E] font-bold'
-                        : 'text-white/50 hover:text-white hover:bg-white/6'
-                      }
-                    `}
-                    title={collapsed && !mobile ? item.label : undefined}
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <item.icon size={15} className="flex-shrink-0" />
-                        {(!collapsed || mobile) && (
-                          <span className={`text-sm ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
-                        )}
-                      </>
-                    )}
-                  </NavLink>
-                ))}
+                {visibleItems.map((item) => {
+                  const isSolicitudes = item.to === '/internal/solicitudes'
+                  const badge = isSolicitudes && pendingSolicitudes > 0 ? pendingSolicitudes : null
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => mobile && setMobileOpen(false)}
+                      className={({ isActive }) => `
+                        flex items-center gap-3 rounded-xl transition-all duration-150
+                        ${collapsed && !mobile ? 'px-0 justify-center py-2.5' : 'px-3 py-2.5'}
+                        ${isActive
+                          ? 'bg-[#C8F135] text-[#1A1F2E] font-bold'
+                          : 'text-white/50 hover:text-white hover:bg-white/6'
+                        }
+                      `}
+                      title={collapsed && !mobile ? item.label : undefined}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <item.icon size={15} className="flex-shrink-0" />
+                          {(!collapsed || mobile) && (
+                            <span className={`text-sm flex-1 ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                          )}
+                          {badge && (!collapsed || mobile) && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${isActive ? 'bg-[#1A1F2E] text-[#C8F135]' : 'bg-red-500 text-white'}`}>
+                              {badge}
+                            </span>
+                          )}
+                          {badge && collapsed && !mobile && (
+                            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  )
+                })}
               </div>
             </div>
           )
