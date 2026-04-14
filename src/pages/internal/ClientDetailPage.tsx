@@ -442,7 +442,6 @@ export function ClientDetailPage() {
               projectId={project?.id}
               businessName={client?.business_name}
               contactName={client?.contact_name}
-              serviceType={project?.service_type}
             />
           </div>
         )}
@@ -613,12 +612,11 @@ export function ClientDetailPage() {
 
 // Sub-component: Onboarding tab
 function OnboardingTab({
-  projectId, businessName, contactName, serviceType,
+  projectId, businessName, contactName,
 }: {
   projectId?: string
   businessName?: string
   contactName?: string
-  serviceType?: string
 }) {
   const [messages, setMessages] = useState<{ role: string; content: string; created_at: string }[]>([])
   const [loading, setLoading] = useState(true)
