@@ -553,7 +553,7 @@ function useMetrics(period: Period, ds: Dataset) {
     const conv_tarde     = weeks.reduce((a, w) => a + w.conv_tarde, 0)
     const conv_noche     = weeks.reduce((a, w) => a + w.conv_noche, 0)
     const conv_madrugada = weeks.reduce((a, w) => a + w.conv_madrugada, 0)
-    const horario_laboral = conv_manana + conv_tarde
+    const horario_laboral = conversations - fuera_horario
     const alertas        = Math.round(conversations * escalation_rate)
     const resueltas      = Math.round(conversations * resolution_rate)
     const escaladas      = alertas
