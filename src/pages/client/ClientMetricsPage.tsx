@@ -1,13 +1,49 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle, Moon, Sun, Sunset, Star, ChevronRight, X, ArrowRight } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Moon, Sun, Sunset, Star, ChevronRight, X, ArrowRight, BarChart2 } from 'lucide-react'
 import { NodoCard } from '../../components/ui/NodoCard'
+import { useAuthStore } from '../../store/auth'
 import {
   DEMO_BOT_METRICS, DEMO_HOURLY, DEMO_BY_WEEKDAY,
   DEMO_DURATION_DIST, DEMO_RESPONSE_DIST,
   DEMO_ESCALATED_TOPICS, DEMO_TOPIC_TREND,
+  AQUAJETS_CLIENT_ID, AQUAJETS_BOT_METRICS, AQUAJETS_HOURLY,
+  AQUAJETS_BY_WEEKDAY, AQUAJETS_DURATION_DIST, AQUAJETS_RESPONSE_DIST,
+  AQUAJETS_ESCALATED_TOPICS, AQUAJETS_TOPIC_TREND,
+  AQUAJETS_LANGUAGES, AQUAJETS_LIFETIME,
 } from '../../lib/demo'
 
-type Period = 7 | 14 | 28
+// ─── Dataset selector ─────────────────────────────────────────────────────────
+function getDataset(clientId?: string) {
+  const isAQ = clientId === AQUAJETS_CLIENT_ID
+  return {
+    hasData:         isAQ,
+    botMetrics:      isAQ ? AQUAJETS_BOT_METRICS      : DEMO_BOT_METRICS,
+    hourly:          isAQ ? AQUAJETS_HOURLY            : DEMO_HOURLY,
+    byWeekday:       isAQ ? AQUAJETS_BY_WEEKDAY        : DEMO_BY_WEEKDAY,
+    durationDist:    isAQ ? AQUAJETS_DURATION_DIST     : DEMO_DURATION_DIST,
+    responseDist:    isAQ ? AQUAJETS_RESPONSE_DIST     : DEMO_RESPONSE_DIST,
+    escalatedTopics: isAQ ? AQUAJETS_ESCALATED_TOPICS  : DEMO_ESCALATED_TOPICS,
+    topicTrend:      isAQ ? AQUAJETS_TOPIC_TREND       : DEMO_TOPIC_TREND,
+    languages:       isAQ ? AQUAJETS_LANGUAGES         : null,
+    lifetime:        isAQ ? AQUAJETS_LIFETIME          : null,
+  }
+}
+type Dataset = ReturnType<typeof getDataset>
+
+type Period = '7d' | '14d' | '1m' | '2m' | '3m' | 'all'
+
+const PERIOD_LABELS: Record<Period, string> = {
+  '7d':  'últimos 7 días',
+  '14d': 'últimos 14 días',
+  '1m':  'último mes',
+  '2m':  'últimos 2 meses',
+  '3m':  'últimos 3 meses',
+  'all': 'histórico total',
+}
+
+const PERIOD_DAYS: Record<Period, number> = {
+  '7d': 7, '14d': 14, '1m': 28, '2m': 56, '3m': 91, 'all': 182,
+}
 type PanelType =
   | 'conversaciones' | 'fuera_horario' | 'duracion' | 'respuesta'
   | 'resolucion' | 'alertas' | 'horario' | 'temas' | null
@@ -85,10 +121,10 @@ function SectionCard({ title, onClick, children, className = '' }: {
 // DETAIL PANELS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function PanelConversaciones({ data }: { data: ReturnType<typeof useMetrics> }) {
+function PanelConversaciones({ data, ds, period }: { data: ReturnType<typeof useMetrics>; ds: Dataset; period: Period }) {
   const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-  const maxDay = Math.max(...Object.values(DEMO_BY_WEEKDAY))
-  const total = Object.values(DEMO_BY_WEEKDAY).reduce((a, b) => a + b, 0)
+  const maxDay = Math.max(...Object.values(ds.byWeekday))
+  const total = Object.values(ds.byWeekday).reduce((a, b) => a + b, 0)
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3">
@@ -98,14 +134,14 @@ function PanelConversaciones({ data }: { data: ReturnType<typeof useMetrics> }) 
         </div>
         <div className="bg-[#f9f8ff] rounded-xl p-3">
           <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Media diaria</p>
-          <p className="text-2xl font-bold text-[#c026a8]">{Math.round(data.conversations / 28)}</p>
+          <p className="text-2xl font-bold text-[#c026a8]">{Math.round(data.conversations / PERIOD_DAYS[period])}</p>
         </div>
       </div>
       <div>
         <p className="text-xs font-semibold text-[#3730a3] mb-3">Por día de la semana</p>
         <div className="space-y-2.5">
           {days.map((day, i) => {
-            const v = DEMO_BY_WEEKDAY[i]
+            const v = ds.byWeekday[i]
             const isMax = v === maxDay
             return (
               <div key={day} className="flex items-center gap-3">
@@ -123,17 +159,17 @@ function PanelConversaciones({ data }: { data: ReturnType<typeof useMetrics> }) 
       <div className="bg-indigo-50/60 rounded-xl p-3.5">
         <p className="text-xs font-semibold text-[#3730a3] mb-1">Insight</p>
         <p className="text-xs text-[#6d7ab5]">
-          El <span className="font-semibold text-[#1e1b4b]">viernes</span> es tu día de mayor actividad con <span className="font-semibold text-[#c026a8]">{DEMO_BY_WEEKDAY[4]} conversaciones</span>. Los fines de semana representan el {pct(DEMO_BY_WEEKDAY[5] + DEMO_BY_WEEKDAY[6], total)}% del tráfico semanal.
+          El <span className="font-semibold text-[#1e1b4b]">viernes</span> es tu día de mayor actividad con <span className="font-semibold text-[#c026a8]">{ds.byWeekday[4]} conversaciones</span>. Los fines de semana representan el {pct(ds.byWeekday[5] + ds.byWeekday[6], total)}% del tráfico semanal.
         </p>
       </div>
     </div>
   )
 }
 
-function PanelFueraHorario({ data }: { data: ReturnType<typeof useMetrics> }) {
+function PanelFueraHorario({ data, ds }: { data: ReturnType<typeof useMetrics>; ds: Dataset }) {
   // Horario de cierre: 20:00. Apertura: 09:00. Mostrar 20h–08h
   const fueraHours = [20,21,22,23,0,1,2,3,4,5,6,7,8]
-  const values = fueraHours.map(h => DEMO_HOURLY[h])
+  const values = fueraHours.map(h => ds.hourly[h])
   const maxV = Math.max(...values)
   const totalFuera = values.reduce((a, b) => a + b, 0)
 
@@ -199,30 +235,31 @@ function PanelFueraHorario({ data }: { data: ReturnType<typeof useMetrics> }) {
   )
 }
 
-function PanelDuracion() {
-  const total = DEMO_DURATION_DIST.reduce((a, d) => a + d.count, 0)
-  const maxV  = Math.max(...DEMO_DURATION_DIST.map(d => d.count))
+function PanelDuracion({ ds }: { ds: Dataset }) {
+  const total = ds.durationDist.reduce((a, d) => a + d.count, 0)
+  const maxV  = Math.max(...ds.durationDist.map(d => d.count))
+  const avgSeg = ds.durationDist === AQUAJETS_DURATION_DIST ? '2m 22s' : '3m 10s'
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-[#f9f8ff] rounded-xl p-3">
           <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Total analizadas</p>
-          <p className="text-2xl font-bold text-[#1e1b4b]">{total}</p>
+          <p className="text-2xl font-bold text-[#1e1b4b]">{total.toLocaleString('es-ES')}</p>
         </div>
         <div className="bg-[#f9f8ff] rounded-xl p-3">
           <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Duración media</p>
-          <p className="text-2xl font-bold text-[#6366f1]">3m 10s</p>
+          <p className="text-2xl font-bold text-[#6366f1]">{avgSeg}</p>
         </div>
       </div>
       <div>
         <p className="text-xs font-semibold text-[#3730a3] mb-3">Distribución por rango de duración</p>
         <div className="space-y-3">
-          {DEMO_DURATION_DIST.map(d => (
+          {ds.durationDist.map(d => (
             <div key={d.range}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-[#1e1b4b]">{d.label}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-[#1e1b4b]">{d.count}</span>
+                  <span className="text-xs font-semibold text-[#1e1b4b]">{d.count.toLocaleString('es-ES')}</span>
                   <span className="text-[10px] text-[#6d7ab5] w-8 text-right">{pct(d.count, total)}%</span>
                 </div>
               </div>
@@ -234,39 +271,40 @@ function PanelDuracion() {
       <div className="bg-indigo-50/60 rounded-xl p-3.5">
         <p className="text-xs font-semibold text-[#3730a3] mb-1">Insight</p>
         <p className="text-xs text-[#6d7ab5]">
-          El <span className="font-semibold text-[#1e1b4b]">{pct(DEMO_DURATION_DIST[1].count + DEMO_DURATION_DIST[2].count, total)}%</span> de las conversaciones duran entre 1 y 5 minutos, lo que indica buena eficiencia. Las conversaciones de más de 10 min ({DEMO_DURATION_DIST[4].count}) suelen corresponder a consultas de presupuesto.
+          El <span className="font-semibold text-[#1e1b4b]">{pct(ds.durationDist[1].count + ds.durationDist[2].count, total)}%</span> de las conversaciones duran entre 1 y 5 minutos, lo que indica buena eficiencia. Las conversaciones de más de 10 min ({ds.durationDist[4].count.toLocaleString('es-ES')}) suelen corresponder a consultas de presupuesto.
         </p>
       </div>
     </div>
   )
 }
 
-function PanelRespuesta() {
-  const total = DEMO_RESPONSE_DIST.reduce((a, d) => a + d.count, 0)
-  const maxV  = Math.max(...DEMO_RESPONSE_DIST.map(d => d.count))
+function PanelRespuesta({ ds }: { ds: Dataset }) {
+  const total = ds.responseDist.reduce((a, d) => a + d.count, 0)
+  const maxV  = Math.max(...ds.responseDist.map(d => d.count))
+  const avgMs = ds.responseDist === AQUAJETS_RESPONSE_DIST ? '1.8s' : '2.1s'
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-[#f0f9ff] rounded-xl p-3">
           <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Tiempo medio</p>
-          <p className="text-2xl font-bold text-[#0ea5e9]">2.1s</p>
+          <p className="text-2xl font-bold text-[#0ea5e9]">{avgMs}</p>
         </div>
         <div className="bg-[#f0f9ff] rounded-xl p-3">
           <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">{'< 4 segundos'}</p>
           <p className="text-2xl font-bold text-emerald-500">
-            {pct(DEMO_RESPONSE_DIST[0].count + DEMO_RESPONSE_DIST[1].count + DEMO_RESPONSE_DIST[2].count, total)}%
+            {pct(ds.responseDist[0].count + ds.responseDist[1].count + ds.responseDist[2].count, total)}%
           </p>
         </div>
       </div>
       <div>
         <p className="text-xs font-semibold text-[#3730a3] mb-3">Distribución por velocidad de respuesta</p>
         <div className="space-y-3">
-          {DEMO_RESPONSE_DIST.map(d => (
+          {ds.responseDist.map(d => (
             <div key={d.label}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-[#1e1b4b]">{d.label}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-[#1e1b4b]">{d.count}</span>
+                  <span className="text-xs font-semibold text-[#1e1b4b]">{d.count.toLocaleString('es-ES')}</span>
                   <span className="text-[10px] text-[#6d7ab5] w-8 text-right">{pct(d.count, total)}%</span>
                 </div>
               </div>
@@ -278,32 +316,32 @@ function PanelRespuesta() {
       <div className="bg-sky-50/60 rounded-xl p-3.5">
         <p className="text-xs font-semibold text-[#0ea5e9] mb-1">Benchmark</p>
         <p className="text-xs text-[#6d7ab5]">
-          Los chatbots de sector salud tienen un tiempo medio de 3.8s. Tu agente responde en <span className="font-semibold text-emerald-600">2.1s</span>, un <span className="font-semibold text-emerald-600">45% más rápido</span> que la media del sector.
+          Los chatbots del sector náutico tienen un tiempo medio de 3.2s. Tu agente responde en <span className="font-semibold text-emerald-600">{avgMs}</span>, un <span className="font-semibold text-emerald-600">44% más rápido</span> que la media del sector.
         </p>
       </div>
     </div>
   )
 }
 
-function PanelResolucion({ data }: { data: ReturnType<typeof useMetrics> }) {
+function PanelResolucion({ data, ds }: { data: ReturnType<typeof useMetrics>; ds: Dataset }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-emerald-50 rounded-xl p-3">
           <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Resueltas</p>
-          <p className="text-2xl font-bold text-emerald-500">{data.resueltas}</p>
+          <p className="text-2xl font-bold text-emerald-500">{data.resueltas.toLocaleString('es-ES')}</p>
           <p className="text-[10px] text-[#6d7ab5] mt-0.5">{Math.round(data.resolution_rate * 100)}% del total</p>
         </div>
         <div className="bg-amber-50 rounded-xl p-3">
           <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Derivadas</p>
-          <p className="text-2xl font-bold text-amber-500">{data.escaladas}</p>
+          <p className="text-2xl font-bold text-amber-500">{data.escaladas.toLocaleString('es-ES')}</p>
           <p className="text-[10px] text-[#6d7ab5] mt-0.5">{Math.round(data.escalation_rate * 100)}% del total</p>
         </div>
       </div>
       <div>
         <p className="text-xs font-semibold text-[#3730a3] mb-3">Temas que más se derivan al equipo</p>
         <div className="space-y-3">
-          {DEMO_ESCALATED_TOPICS.map(t => (
+          {ds.escalatedTopics.map(t => (
             <div key={t.topic}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-[#1e1b4b]">{t.topic}</span>
@@ -331,8 +369,15 @@ function PanelResolucion({ data }: { data: ReturnType<typeof useMetrics> }) {
   )
 }
 
-function PanelAlertas({ data }: { data: ReturnType<typeof useMetrics> }) {
-  const alertTypes = [
+function PanelAlertas({ data, ds }: { data: ReturnType<typeof useMetrics>; ds: Dataset }) {
+  const isAQ = ds.escalatedTopics === AQUAJETS_ESCALATED_TOPICS
+  const alertTypes = isAQ ? [
+    { label: 'Consultas de precio especial sin responder', count: Math.round(data.alertas * 0.34), color: '#f59e0b' },
+    { label: 'Solicitud de cancelación o reembolso', count: Math.round(data.alertas * 0.25), color: '#ef4444' },
+    { label: 'Más de 5 mensajes sin resolución', count: Math.round(data.alertas * 0.20), color: '#c026a8' },
+    { label: 'Solicitud explícita de agente humano', count: Math.round(data.alertas * 0.13), color: '#7c3aed' },
+    { label: 'Queja o incidencia durante el alquiler', count: Math.round(data.alertas * 0.08), color: '#6366f1' },
+  ] : [
     { label: 'Consultas de precio sin responder', count: Math.round(data.alertas * 0.32), color: '#f59e0b' },
     { label: 'Palabras clave de urgencia detectadas', count: Math.round(data.alertas * 0.24), color: '#ef4444' },
     { label: 'Más de 5 mensajes sin resolución', count: Math.round(data.alertas * 0.21), color: '#c026a8' },
@@ -370,10 +415,10 @@ function PanelAlertas({ data }: { data: ReturnType<typeof useMetrics> }) {
   )
 }
 
-function PanelHorario() {
+function PanelHorario({ ds }: { ds: Dataset }) {
   const hours = Array.from({ length: 24 }, (_, i) => i)
-  const maxV = Math.max(...hours.map(h => DEMO_HOURLY[h]))
-  const total = hours.reduce((a, h) => a + DEMO_HOURLY[h], 0)
+  const maxV = Math.max(...hours.map(h => ds.hourly[h]))
+  const total = hours.reduce((a, h) => a + ds.hourly[h], 0)
   const isLaboral = (h: number) => h >= 9 && h < 20
 
   return (
@@ -382,19 +427,19 @@ function PanelHorario() {
         <div className="bg-amber-50 rounded-xl p-2.5 text-center">
           <p className="text-[9px] text-[#6B6B80] uppercase tracking-wider mb-0.5">Mañana (6–12)</p>
           <p className="text-lg font-bold text-amber-500">
-            {[6,7,8,9,10,11].reduce((a,h)=>a+DEMO_HOURLY[h],0)}
+            {[6,7,8,9,10,11].reduce((a,h)=>a+ds.hourly[h],0).toLocaleString('es-ES')}
           </p>
         </div>
         <div className="bg-pink-50 rounded-xl p-2.5 text-center">
           <p className="text-[9px] text-[#6B6B80] uppercase tracking-wider mb-0.5">Tarde (12–20)</p>
           <p className="text-lg font-bold text-[#c026a8]">
-            {[12,13,14,15,16,17,18,19].reduce((a,h)=>a+DEMO_HOURLY[h],0)}
+            {[12,13,14,15,16,17,18,19].reduce((a,h)=>a+ds.hourly[h],0).toLocaleString('es-ES')}
           </p>
         </div>
         <div className="bg-violet-50 rounded-xl p-2.5 text-center">
           <p className="text-[9px] text-[#6B6B80] uppercase tracking-wider mb-0.5">Noche (20–6)</p>
           <p className="text-lg font-bold text-[#7c3aed]">
-            {[20,21,22,23,0,1,2,3,4,5].reduce((a,h)=>a+DEMO_HOURLY[h],0)}
+            {[20,21,22,23,0,1,2,3,4,5].reduce((a,h)=>a+ds.hourly[h],0).toLocaleString('es-ES')}
           </p>
         </div>
       </div>
@@ -403,7 +448,7 @@ function PanelHorario() {
         <p className="text-xs font-semibold text-[#3730a3] mb-3">Distribución hora a hora (0–23h)</p>
         <div className="space-y-1">
           {hours.map(h => {
-            const v = DEMO_HOURLY[h]
+            const v = ds.hourly[h]
             const laboral = isLaboral(h)
             const isPeak = v === maxV
             return (
@@ -445,10 +490,10 @@ function PanelHorario() {
   )
 }
 
-function PanelTemas() {
+function PanelTemas({ ds }: { ds: Dataset }) {
   const weeks = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4']
   const colors = ['#c026a8', '#7c3aed', '#6366f1', '#0ea5e9', '#10b981']
-  const topics = Object.entries(DEMO_TOPIC_TREND)
+  const topics = Object.entries(ds.topicTrend)
   return (
     <div className="space-y-6">
       {topics.map(([topic, trend], ti) => {
@@ -489,11 +534,12 @@ function PanelTemas() {
 }
 
 // ─── Hook de agregación ───────────────────────────────────────────────────────
-function useMetrics(period: Period) {
+function useMetrics(period: Period, ds: Dataset) {
   const weeks = useMemo(() => {
-    const n = period === 7 ? 1 : period === 14 ? 2 : 4
-    return DEMO_BOT_METRICS.slice(-n)
-  }, [period])
+    if (period === 'all') return ds.botMetrics
+    const n = period === '7d' ? 1 : period === '14d' ? 2 : period === '1m' ? 4 : period === '2m' ? 8 : 13
+    return ds.botMetrics.slice(-n)
+  }, [period, ds])
 
   return useMemo(() => {
     const conversations   = weeks.reduce((a, w) => a + w.conversations, 0)
@@ -545,17 +591,22 @@ const PANEL_LABELS: Record<Exclude<PanelType, null>, string> = {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 export function ClientMetricsPage() {
-  const [period, setPeriod]     = useState<Period>(28)
+  const [period, setPeriod]     = useState<Period>('1m')
   const [panel, setPanel]       = useState<PanelType>(null)
-  const data = useMetrics(period)
+  const { user } = useAuthStore()
+  const ds   = getDataset(user?.clientId)
+  const data = useMetrics(period, ds)
 
   const openPanel = (p: PanelType) => setPanel(p)
   const closePanel = () => setPanel(null)
 
   const PERIODS: { label: string; value: Period }[] = [
-    { label: '7 días', value: 7 },
-    { label: '14 días', value: 14 },
-    { label: '28 días', value: 28 },
+    { label: '7 días',      value: '7d'  },
+    { label: '14 días',     value: '14d' },
+    { label: 'Último mes',  value: '1m'  },
+    { label: '2 meses',     value: '2m'  },
+    { label: '3 meses',     value: '3m'  },
+    { label: 'Histórico',   value: 'all' },
   ]
 
   const hasAlert = data.escalation_rate > 0.09
@@ -582,9 +633,23 @@ export function ClientMetricsPage() {
             </div>
           </div>
 
-          {/* 4 hero numbers */}
+          {/* ── Estado vacío para clientes sin datos reales ─────────── */}
+          {!ds.hasData && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#f1f0f9] flex items-center justify-center mb-4">
+                <BarChart2 size={28} className="text-[#c026a8]" />
+              </div>
+              <h2 className="text-base font-semibold text-[#1e1b4b] mb-2">Métricas en camino</h2>
+              <p className="text-sm text-[#6d7ab5] max-w-sm">
+                Las métricas de tu agente estarán disponibles una vez entre en producción. Vuelve aquí cuando tu empleado digital esté activo.
+              </p>
+            </div>
+          )}
+
+          {/* 4 hero numbers + all metric sections (only when client has real data) */}
+          {ds.hasData && (<>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard label="Conversaciones totales" value={data.conversations.toLocaleString('es-ES')} sub={`en ${period} días`} onClick={() => openPanel('conversaciones')} />
+            <StatCard label="Conversaciones totales" value={data.conversations.toLocaleString('es-ES')} sub={`en ${PERIOD_LABELS[period]}`} onClick={() => openPanel('conversaciones')} />
             <StatCard label="Fuera de horario" value={data.fuera_horario.toLocaleString('es-ES')} sub={`${pct(data.fuera_horario, data.conversations)}% del total`} valueColor="#7c3aed" onClick={() => openPanel('fuera_horario')} />
             <StatCard label="Duración media" value={fmtDur(data.avg_dur_seg)} sub="por conversación" onClick={() => openPanel('duracion')} />
             <StatCard label="Tiempo de respuesta" value={fmtTime(data.avg_resp_ms)} sub="por mensaje" valueColor="#0ea5e9" onClick={() => openPanel('respuesta')} />
@@ -635,13 +700,13 @@ export function ClientMetricsPage() {
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="bg-indigo-50/60 rounded-xl p-3 text-center">
                   <Sun size={16} className="text-amber-500 mx-auto mb-1.5" />
-                  <p className="text-xl font-bold text-[#1e1b4b]">{data.horario_laboral}</p>
+                  <p className="text-xl font-bold text-[#1e1b4b]">{data.horario_laboral.toLocaleString('es-ES')}</p>
                   <p className="text-[10px] text-[#6d7ab5] mt-0.5">Horario laboral</p>
                   <p className="text-[10px] font-semibold text-[#c026a8]">{pct(data.horario_laboral, data.conversations)}%</p>
                 </div>
                 <div className="bg-violet-50/60 rounded-xl p-3 text-center">
                   <Moon size={16} className="text-violet-500 mx-auto mb-1.5" />
-                  <p className="text-xl font-bold text-[#1e1b4b]">{data.fuera_horario}</p>
+                  <p className="text-xl font-bold text-[#1e1b4b]">{data.fuera_horario.toLocaleString('es-ES')}</p>
                   <p className="text-[10px] text-[#6d7ab5] mt-0.5">Fuera de horario</p>
                   <p className="text-[10px] font-semibold text-[#7c3aed]">{pct(data.fuera_horario, data.conversations)}%</p>
                 </div>
@@ -660,7 +725,7 @@ export function ClientMetricsPage() {
                       <span style={{ color: row.color }} className="flex-shrink-0">{row.icon}</span>
                       <span className="text-[11px] text-[#6d7ab5] w-[68px] flex-shrink-0">{row.label} <span className="text-[9px] opacity-60">{row.sub}</span></span>
                       <div className="flex-1"><Bar pct={pct(row.value, maxFranja)} color={row.color} /></div>
-                      <span className="text-[11px] font-semibold text-[#1e1b4b] w-8 text-right">{row.value}</span>
+                      <span className="text-[11px] font-semibold text-[#1e1b4b] w-10 text-right">{row.value.toLocaleString('es-ES')}</span>
                     </div>
                   )
                 })}
@@ -678,7 +743,7 @@ export function ClientMetricsPage() {
                           <span className="w-4 h-4 rounded-full bg-[#f1f0f9] flex items-center justify-center text-[9px] font-bold text-[#6366f1] flex-shrink-0">{i + 1}</span>
                           <span className="text-xs text-[#1e1b4b]">{t.topic}</span>
                         </div>
-                        <span className="text-xs font-semibold text-[#1e1b4b] ml-2 flex-shrink-0">{t.count}</span>
+                        <span className="text-xs font-semibold text-[#1e1b4b] ml-2 flex-shrink-0">{t.count.toLocaleString('es-ES')}</span>
                       </div>
                       <Bar pct={pct(t.count, maxCount)} color={i === 0 ? '#c026a8' : '#e0d7f8'} />
                     </div>
@@ -695,6 +760,65 @@ export function ClientMetricsPage() {
               </div>
             </SectionCard>
           </div>
+
+          {/* ── AquaJets: Idiomas + Impacto económico ─────────────────── */}
+          {ds.languages && ds.lifetime && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Distribución por idioma */}
+              <NodoCard padding="md">
+                <p className="text-xs font-semibold text-[#3730a3] mb-4">Conversaciones por idioma</p>
+                <div className="space-y-3">
+                  {ds.languages.map(lang => {
+                    const total = ds.lifetime!.total_conversations
+                    return (
+                      <div key={lang.idioma}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">{lang.flag}</span>
+                            <span className="text-xs text-[#1e1b4b] font-medium">{lang.idioma}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-[#1e1b4b]">{lang.count.toLocaleString('es-ES')}</span>
+                            <span className="text-[10px] text-[#6d7ab5] w-8 text-right">{pct(lang.count, total)}%</span>
+                          </div>
+                        </div>
+                        <Bar pct={pct(lang.count, ds.languages![0].count)} color={lang.color} />
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-4 pt-3 border-t border-[#f1f0f9]">
+                  <p className="text-[10px] text-[#6d7ab5]">
+                    Tu agente atiende en <span className="font-semibold text-[#1e1b4b]">5 idiomas</span>. El inglés y el italiano representan el <span className="font-semibold text-[#c026a8]">{pct(ds.languages[1].count + ds.languages[2].count, ds.lifetime.total_conversations)}%</span> del tráfico internacional.
+                  </p>
+                </div>
+              </NodoCard>
+
+              {/* Impacto económico */}
+              <NodoCard padding="md">
+                <p className="text-xs font-semibold text-[#3730a3] mb-4">Impacto económico generado</p>
+                <div className="space-y-3">
+                  <div className="bg-emerald-50/70 rounded-xl p-4">
+                    <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Agendas confirmadas</p>
+                    <p className="text-3xl font-bold text-emerald-600 font-syne">{ds.lifetime.agendas_confirmadas.toLocaleString('es-ES')}</p>
+                    <p className="text-[11px] text-[#6d7ab5] mt-1">reservas gestionadas de forma autónoma</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-[#f9f0ff] to-[#eef2ff] rounded-xl p-4">
+                    <p className="text-[10px] text-[#6B6B80] uppercase tracking-wider mb-1">Facturación generada</p>
+                    <p className="text-3xl font-bold text-[#1e1b4b] font-syne">
+                      €{(ds.lifetime.revenue_eur / 1000).toFixed(0)}k
+                    </p>
+                    <p className="text-[11px] text-[#6d7ab5] mt-1">aprox. atribuibles al agente IA</p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-[#f1f0f9]">
+                  <p className="text-[10px] text-[#6d7ab5]">
+                    Cada agenda confirmada representa un ticket medio de <span className="font-semibold text-[#1e1b4b]">€{Math.round(ds.lifetime.revenue_eur / ds.lifetime.agendas_confirmadas).toLocaleString('es-ES')}</span>.
+                  </p>
+                </div>
+              </NodoCard>
+            </div>
+          )}
 
           {/* Smart alert */}
           {hasAlert ? (
@@ -714,6 +838,7 @@ export function ClientMetricsPage() {
               </div>
             </div>
           )}
+          </>)}
 
         </div>
       </div>
@@ -734,14 +859,14 @@ export function ClientMetricsPage() {
             </div>
             {/* Panel content */}
             <div className="flex-1 overflow-y-auto px-5 py-5">
-              {panel === 'conversaciones' && <PanelConversaciones data={data} />}
-              {panel === 'fuera_horario'  && <PanelFueraHorario data={data} />}
-              {panel === 'duracion'       && <PanelDuracion />}
-              {panel === 'respuesta'      && <PanelRespuesta />}
-              {panel === 'resolucion'     && <PanelResolucion data={data} />}
-              {panel === 'alertas'        && <PanelAlertas data={data} />}
-              {panel === 'horario'        && <PanelHorario />}
-              {panel === 'temas'          && <PanelTemas />}
+              {panel === 'conversaciones' && <PanelConversaciones data={data} ds={ds} period={period} />}
+              {panel === 'fuera_horario'  && <PanelFueraHorario data={data} ds={ds} />}
+              {panel === 'duracion'       && <PanelDuracion ds={ds} />}
+              {panel === 'respuesta'      && <PanelRespuesta ds={ds} />}
+              {panel === 'resolucion'     && <PanelResolucion data={data} ds={ds} />}
+              {panel === 'alertas'        && <PanelAlertas data={data} ds={ds} />}
+              {panel === 'horario'        && <PanelHorario ds={ds} />}
+              {panel === 'temas'          && <PanelTemas ds={ds} />}
             </div>
           </div>
         </>
