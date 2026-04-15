@@ -10,22 +10,26 @@ import {
   AQUAJETS_BY_WEEKDAY, AQUAJETS_DURATION_DIST, AQUAJETS_RESPONSE_DIST,
   AQUAJETS_ESCALATED_TOPICS, AQUAJETS_TOPIC_TREND,
   AQUAJETS_LANGUAGES, AQUAJETS_LIFETIME,
+  FITLIFE_CLIENT_ID, FITLIFE_BOT_METRICS, FITLIFE_HOURLY,
+  FITLIFE_BY_WEEKDAY, FITLIFE_DURATION_DIST, FITLIFE_RESPONSE_DIST,
+  FITLIFE_ESCALATED_TOPICS, FITLIFE_TOPIC_TREND,
 } from '../../lib/demo'
 
 // ─── Dataset selector ─────────────────────────────────────────────────────────
 function getDataset(clientId?: string) {
   const isAQ = clientId === AQUAJETS_CLIENT_ID
+  const isFL = clientId === FITLIFE_CLIENT_ID
   return {
-    hasData:         isAQ,
-    botMetrics:      isAQ ? AQUAJETS_BOT_METRICS      : DEMO_BOT_METRICS,
-    hourly:          isAQ ? AQUAJETS_HOURLY            : DEMO_HOURLY,
-    byWeekday:       isAQ ? AQUAJETS_BY_WEEKDAY        : DEMO_BY_WEEKDAY,
-    durationDist:    isAQ ? AQUAJETS_DURATION_DIST     : DEMO_DURATION_DIST,
-    responseDist:    isAQ ? AQUAJETS_RESPONSE_DIST     : DEMO_RESPONSE_DIST,
-    escalatedTopics: isAQ ? AQUAJETS_ESCALATED_TOPICS  : DEMO_ESCALATED_TOPICS,
-    topicTrend:      isAQ ? AQUAJETS_TOPIC_TREND       : DEMO_TOPIC_TREND,
-    languages:       isAQ ? AQUAJETS_LANGUAGES         : null,
-    lifetime:        isAQ ? AQUAJETS_LIFETIME          : null,
+    hasData:         isAQ || isFL,
+    botMetrics:      isAQ ? AQUAJETS_BOT_METRICS     : isFL ? FITLIFE_BOT_METRICS     : DEMO_BOT_METRICS,
+    hourly:          isAQ ? AQUAJETS_HOURLY           : isFL ? FITLIFE_HOURLY           : DEMO_HOURLY,
+    byWeekday:       isAQ ? AQUAJETS_BY_WEEKDAY       : isFL ? FITLIFE_BY_WEEKDAY       : DEMO_BY_WEEKDAY,
+    durationDist:    isAQ ? AQUAJETS_DURATION_DIST    : isFL ? FITLIFE_DURATION_DIST    : DEMO_DURATION_DIST,
+    responseDist:    isAQ ? AQUAJETS_RESPONSE_DIST    : isFL ? FITLIFE_RESPONSE_DIST    : DEMO_RESPONSE_DIST,
+    escalatedTopics: isAQ ? AQUAJETS_ESCALATED_TOPICS : isFL ? FITLIFE_ESCALATED_TOPICS : DEMO_ESCALATED_TOPICS,
+    topicTrend:      isAQ ? AQUAJETS_TOPIC_TREND      : isFL ? FITLIFE_TOPIC_TREND      : DEMO_TOPIC_TREND,
+    languages:       isAQ ? AQUAJETS_LANGUAGES        : null,
+    lifetime:        isAQ ? AQUAJETS_LIFETIME         : null,
   }
 }
 type Dataset = ReturnType<typeof getDataset>

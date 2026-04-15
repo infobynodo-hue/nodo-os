@@ -279,6 +279,132 @@ export const DEMO_TOPIC_TREND: Record<string, number[]> = {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// FITLIFE STUDIO — Datos de producción
+// Cliente: 00000000-0001-0000-0000-000000000003
+// ═══════════════════════════════════════════════════════════════════════════════
+export const FITLIFE_CLIENT_ID = '00000000-0001-0000-0000-000000000003'
+
+export const FITLIFE_BOT_METRICS: BotMetricDemo[] = [
+  {
+    week_start: '2026-03-17',
+    conversations: 187,
+    atendidas_fuera_horario: 74,
+    duracion_conversacion_seg: 168,
+    avg_response_ms: 2340,
+    resolution_rate: 0.85,
+    escalation_rate: 0.08,
+    conv_manana: 52, conv_tarde: 96, conv_noche: 29, conv_madrugada: 10,
+    top_topics: [
+      { topic: 'Clases y horarios',        count: 58 },
+      { topic: 'Reservas de clase',         count: 42 },
+      { topic: 'Membresías y tarifas',      count: 37 },
+      { topic: 'Información nutricional',   count: 29 },
+      { topic: 'Instalaciones y servicios', count: 21 },
+    ],
+  },
+  {
+    week_start: '2026-03-24',
+    conversations: 214,
+    atendidas_fuera_horario: 83,
+    duracion_conversacion_seg: 162,
+    avg_response_ms: 2280,
+    resolution_rate: 0.87,
+    escalation_rate: 0.07,
+    conv_manana: 61, conv_tarde: 109, conv_noche: 33, conv_madrugada: 11,
+    top_topics: [
+      { topic: 'Clases y horarios',        count: 67 },
+      { topic: 'Reservas de clase',         count: 48 },
+      { topic: 'Membresías y tarifas',      count: 41 },
+      { topic: 'Información nutricional',   count: 33 },
+      { topic: 'Instalaciones y servicios', count: 25 },
+    ],
+  },
+  {
+    week_start: '2026-03-31',
+    conversations: 198,
+    atendidas_fuera_horario: 78,
+    duracion_conversacion_seg: 171,
+    avg_response_ms: 2410,
+    resolution_rate: 0.84,
+    escalation_rate: 0.09,
+    conv_manana: 56, conv_tarde: 101, conv_noche: 31, conv_madrugada: 10,
+    top_topics: [
+      { topic: 'Clases y horarios',        count: 62 },
+      { topic: 'Reservas de clase',         count: 44 },
+      { topic: 'Membresías y tarifas',      count: 38 },
+      { topic: 'Información nutricional',   count: 30 },
+      { topic: 'Cancelaciones y cambios',   count: 24 },
+    ],
+  },
+  {
+    week_start: '2026-04-07',
+    conversations: 231,
+    atendidas_fuera_horario: 89,
+    duracion_conversacion_seg: 158,
+    avg_response_ms: 2190,
+    resolution_rate: 0.88,
+    escalation_rate: 0.07,
+    conv_manana: 66, conv_tarde: 118, conv_noche: 36, conv_madrugada: 11,
+    top_topics: [
+      { topic: 'Clases y horarios',        count: 72 },
+      { topic: 'Reservas de clase',         count: 52 },
+      { topic: 'Membresías y tarifas',      count: 44 },
+      { topic: 'Información nutricional',   count: 36 },
+      { topic: 'Instalaciones y servicios', count: 27 },
+    ],
+  },
+]
+
+export const FITLIFE_HOURLY: Record<number, number> = {
+  0: 2,  1: 1,  2: 0,  3: 0,  4: 1,  5: 4,
+  6: 12, 7: 28, 8: 41, 9: 38, 10: 34, 11: 29,
+  12: 24, 13: 31, 14: 28, 15: 33, 16: 41, 17: 58,
+  18: 72, 19: 68, 20: 52, 21: 38, 22: 21, 23: 9,
+}
+
+export const FITLIFE_BY_WEEKDAY: Record<number, number> = {
+  0: 112, // Lun
+  1: 124, // Mar
+  2: 118, // Mié
+  3: 131, // Jue
+  4: 127, // Vie
+  5: 98,  // Sáb — clases mañana
+  6: 54,  // Dom — menor actividad
+}
+
+export const FITLIFE_DURATION_DIST = [
+  { label: 'Menos de 1 min', range: '<1m',  count: 68,  color: '#10b981' },
+  { label: '1 – 3 minutos',  range: '1-3m', count: 287, color: '#6366f1' },
+  { label: '3 – 5 minutos',  range: '3-5m', count: 214, color: '#c026a8' },
+  { label: '5 – 10 minutos', range: '5-10m',count: 124, color: '#f59e0b' },
+  { label: 'Más de 10 min',  range: '>10m', count: 38,  color: '#ef4444' },
+]
+
+export const FITLIFE_RESPONSE_DIST = [
+  { label: '< 1 segundo',    count: 48,  color: '#10b981' },
+  { label: '1 – 2 segundos', count: 197, color: '#6366f1' },
+  { label: '2 – 4 segundos', count: 284, color: '#c026a8' },
+  { label: '4 – 8 segundos', count: 148, color: '#f59e0b' },
+  { label: '> 8 segundos',   count: 57,  color: '#ef4444' },
+]
+
+export const FITLIFE_ESCALATED_TOPICS = [
+  { topic: 'Congelaciones de membresía',  escalated: 31, resolved: 8,  pct: 79 },
+  { topic: 'Reclamaciones de pago',       escalated: 24, resolved: 11, pct: 69 },
+  { topic: 'Lesiones e incidencias',      escalated: 18, resolved: 6,  pct: 75 },
+  { topic: 'Cambio de plan/tarifa',       escalated: 14, resolved: 22, pct: 39 },
+  { topic: 'Acceso y horarios especiales',escalated: 9,  resolved: 28, pct: 24 },
+]
+
+export const FITLIFE_TOPIC_TREND: Record<string, number[]> = {
+  'Clases y horarios':        [58, 67, 62, 72],
+  'Reservas de clase':        [42, 48, 44, 52],
+  'Membresías y tarifas':     [37, 41, 38, 44],
+  'Información nutricional':  [29, 33, 30, 36],
+  'Instalaciones y servicios':[21, 25, 24, 27],
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // AQUAJETS — Datos específicos de producción
 // Cliente: deeb1a7b-5f4a-4e43-b188-2ed9f047d417
 // ═══════════════════════════════════════════════════════════════════════════════
