@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/auth'
 import { DemoSwitcher } from './components/ui/DemoSwitcher'
@@ -13,35 +13,44 @@ import { ProtectedRoute } from './routes/ProtectedRoute'
 // Auth pages
 import { LoginPage } from './pages/auth/LoginPage'
 
-// Internal pages
-import { DashboardPage } from './pages/internal/DashboardPage'
-import { ClientsPage } from './pages/internal/ClientsPage'
-import { NewClientPage } from './pages/internal/NewClientPage'
-import { ClientDetailPage } from './pages/internal/ClientDetailPage'
-import { TeamPage } from './pages/internal/TeamPage'
-import { PlugsPage } from './pages/internal/PlugsPage'
-import { SuperAdminPage } from './pages/internal/SuperAdminPage'
-import { LeadsPage } from './pages/internal/LeadsPage'
-import { SequencesPage } from './pages/internal/SequencesPage'
-import { TasksPage } from './pages/internal/TasksPage'
-import { CalendarPage } from './pages/internal/CalendarPage'
-import { ResourcesPage } from './pages/internal/ResourcesPage'
-import { GuiasPage } from './pages/internal/GuiasPage'
-import { BotTesterPage } from './pages/internal/BotTesterPage'
-import { MasterMetricsPage } from './pages/internal/MasterMetricsPage'
-import { SolicitudesPage } from './pages/internal/SolicitudesPage'
+// Internal pages — lazy loaded (solo se descargan cuando el usuario navega a ellas)
+const DashboardPage        = lazy(() => import('./pages/internal/DashboardPage').then(m => ({ default: m.DashboardPage })))
+const ClientsPage          = lazy(() => import('./pages/internal/ClientsPage').then(m => ({ default: m.ClientsPage })))
+const NewClientPage        = lazy(() => import('./pages/internal/NewClientPage').then(m => ({ default: m.NewClientPage })))
+const ClientDetailPage     = lazy(() => import('./pages/internal/ClientDetailPage').then(m => ({ default: m.ClientDetailPage })))
+const TeamPage             = lazy(() => import('./pages/internal/TeamPage').then(m => ({ default: m.TeamPage })))
+const PlugsPage            = lazy(() => import('./pages/internal/PlugsPage').then(m => ({ default: m.PlugsPage })))
+const SuperAdminPage       = lazy(() => import('./pages/internal/SuperAdminPage').then(m => ({ default: m.SuperAdminPage })))
+const LeadsPage            = lazy(() => import('./pages/internal/LeadsPage').then(m => ({ default: m.LeadsPage })))
+const SequencesPage        = lazy(() => import('./pages/internal/SequencesPage').then(m => ({ default: m.SequencesPage })))
+const TasksPage            = lazy(() => import('./pages/internal/TasksPage').then(m => ({ default: m.TasksPage })))
+const CalendarPage         = lazy(() => import('./pages/internal/CalendarPage').then(m => ({ default: m.CalendarPage })))
+const ResourcesPage        = lazy(() => import('./pages/internal/ResourcesPage').then(m => ({ default: m.ResourcesPage })))
+const GuiasPage            = lazy(() => import('./pages/internal/GuiasPage').then(m => ({ default: m.GuiasPage })))
+const BotTesterPage        = lazy(() => import('./pages/internal/BotTesterPage').then(m => ({ default: m.BotTesterPage })))
+const MasterMetricsPage    = lazy(() => import('./pages/internal/MasterMetricsPage').then(m => ({ default: m.MasterMetricsPage })))
+const SolicitudesPage      = lazy(() => import('./pages/internal/SolicitudesPage').then(m => ({ default: m.SolicitudesPage })))
 
-// Client pages
-import { ClientDashboardPage } from './pages/client/ClientDashboardPage'
-import { ClientChatPage } from './pages/client/ClientChatPage'
-import { ClientProjectPage } from './pages/client/ClientProjectPage'
-import { ClientBotPage } from './pages/client/ClientBotPage'
-import { ClientBillingPage } from './pages/client/ClientBillingPage'
-import { ClientDocsPage } from './pages/client/ClientDocsPage'
-import { ClientCredentialsPage } from './pages/client/ClientCredentialsPage'
-import { ClientAcademiaPage } from './pages/client/ClientAcademiaPage'
-import { ClientMetricsPage } from './pages/client/ClientMetricsPage'
-import { ClientTestsPage } from './pages/client/ClientTestsPage'
+// Client pages — lazy loaded
+const ClientDashboardPage  = lazy(() => import('./pages/client/ClientDashboardPage').then(m => ({ default: m.ClientDashboardPage })))
+const ClientChatPage       = lazy(() => import('./pages/client/ClientChatPage').then(m => ({ default: m.ClientChatPage })))
+const ClientProjectPage    = lazy(() => import('./pages/client/ClientProjectPage').then(m => ({ default: m.ClientProjectPage })))
+const ClientBotPage        = lazy(() => import('./pages/client/ClientBotPage').then(m => ({ default: m.ClientBotPage })))
+const ClientBillingPage    = lazy(() => import('./pages/client/ClientBillingPage').then(m => ({ default: m.ClientBillingPage })))
+const ClientDocsPage       = lazy(() => import('./pages/client/ClientDocsPage').then(m => ({ default: m.ClientDocsPage })))
+const ClientCredentialsPage = lazy(() => import('./pages/client/ClientCredentialsPage').then(m => ({ default: m.ClientCredentialsPage })))
+const ClientAcademiaPage   = lazy(() => import('./pages/client/ClientAcademiaPage').then(m => ({ default: m.ClientAcademiaPage })))
+const ClientMetricsPage    = lazy(() => import('./pages/client/ClientMetricsPage').then(m => ({ default: m.ClientMetricsPage })))
+const ClientTestsPage      = lazy(() => import('./pages/client/ClientTestsPage').then(m => ({ default: m.ClientTestsPage })))
+
+// Spinner compartido para Suspense fallback
+function PageSpinner() {
+  return (
+    <div className="flex items-center justify-center h-full min-h-[60vh]">
+      <div className="w-6 h-6 border-2 border-[#C026A8] border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
 
 function RootRedirect() {
   const { user, initialized } = useAuthStore()
@@ -82,26 +91,26 @@ export default function App() {
           }
         >
           <Route index element={<Navigate to="/internal/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="clients" element={<ClientsPage />} />
-          <Route path="clients/new" element={<NewClientPage />} />
-          <Route path="clients/:id" element={<ClientDetailPage />} />
-          <Route path="team" element={<TeamPage />} />
-          <Route path="tasks" element={<TasksPage />} />
-          <Route path="solicitudes" element={<SolicitudesPage />} />
-          <Route path="calendar" element={<CalendarPage />} />
-          <Route path="plugs" element={<PlugsPage />} />
-          <Route path="leads" element={<LeadsPage />} />
-          <Route path="sequences" element={<SequencesPage />} />
-          <Route path="resources" element={<ResourcesPage />} />
-          <Route path="guias" element={<GuiasPage />} />
-          <Route path="metrics" element={<MasterMetricsPage />} />
-          <Route path="bot-tester" element={<BotTesterPage />} />
+          <Route path="dashboard"   element={<Suspense fallback={<PageSpinner />}><DashboardPage /></Suspense>} />
+          <Route path="clients"     element={<Suspense fallback={<PageSpinner />}><ClientsPage /></Suspense>} />
+          <Route path="clients/new" element={<Suspense fallback={<PageSpinner />}><NewClientPage /></Suspense>} />
+          <Route path="clients/:id" element={<Suspense fallback={<PageSpinner />}><ClientDetailPage /></Suspense>} />
+          <Route path="team"        element={<Suspense fallback={<PageSpinner />}><TeamPage /></Suspense>} />
+          <Route path="tasks"       element={<Suspense fallback={<PageSpinner />}><TasksPage /></Suspense>} />
+          <Route path="solicitudes" element={<Suspense fallback={<PageSpinner />}><SolicitudesPage /></Suspense>} />
+          <Route path="calendar"    element={<Suspense fallback={<PageSpinner />}><CalendarPage /></Suspense>} />
+          <Route path="plugs"       element={<Suspense fallback={<PageSpinner />}><PlugsPage /></Suspense>} />
+          <Route path="leads"       element={<Suspense fallback={<PageSpinner />}><LeadsPage /></Suspense>} />
+          <Route path="sequences"   element={<Suspense fallback={<PageSpinner />}><SequencesPage /></Suspense>} />
+          <Route path="resources"   element={<Suspense fallback={<PageSpinner />}><ResourcesPage /></Suspense>} />
+          <Route path="guias"       element={<Suspense fallback={<PageSpinner />}><GuiasPage /></Suspense>} />
+          <Route path="metrics"     element={<Suspense fallback={<PageSpinner />}><MasterMetricsPage /></Suspense>} />
+          <Route path="bot-tester"  element={<Suspense fallback={<PageSpinner />}><BotTesterPage /></Suspense>} />
           <Route
             path="superadmin"
             element={
               <ProtectedRoute allowedRoles={['superadmin']}>
-                <SuperAdminPage />
+                <Suspense fallback={<PageSpinner />}><SuperAdminPage /></Suspense>
               </ProtectedRoute>
             }
           />
@@ -117,16 +126,16 @@ export default function App() {
           }
         >
           <Route index element={<Navigate to="/client/dashboard" replace />} />
-          <Route path="dashboard" element={<ClientDashboardPage />} />
-          <Route path="chat" element={<ClientChatPage />} />
-          <Route path="project" element={<ClientProjectPage />} />
-          <Route path="bot" element={<ClientBotPage />} />
-          <Route path="billing" element={<ClientBillingPage />} />
-          <Route path="academia" element={<ClientAcademiaPage />} />
-          <Route path="docs" element={<ClientDocsPage />} />
-          <Route path="credentials" element={<ClientCredentialsPage />} />
-          <Route path="metrics" element={<ClientMetricsPage />} />
-          <Route path="tests" element={<ClientTestsPage />} />
+          <Route path="dashboard"   element={<Suspense fallback={<PageSpinner />}><ClientDashboardPage /></Suspense>} />
+          <Route path="chat"        element={<Suspense fallback={<PageSpinner />}><ClientChatPage /></Suspense>} />
+          <Route path="project"     element={<Suspense fallback={<PageSpinner />}><ClientProjectPage /></Suspense>} />
+          <Route path="bot"         element={<Suspense fallback={<PageSpinner />}><ClientBotPage /></Suspense>} />
+          <Route path="billing"     element={<Suspense fallback={<PageSpinner />}><ClientBillingPage /></Suspense>} />
+          <Route path="academia"    element={<Suspense fallback={<PageSpinner />}><ClientAcademiaPage /></Suspense>} />
+          <Route path="docs"        element={<Suspense fallback={<PageSpinner />}><ClientDocsPage /></Suspense>} />
+          <Route path="credentials" element={<Suspense fallback={<PageSpinner />}><ClientCredentialsPage /></Suspense>} />
+          <Route path="metrics"     element={<Suspense fallback={<PageSpinner />}><ClientMetricsPage /></Suspense>} />
+          <Route path="tests"       element={<Suspense fallback={<PageSpinner />}><ClientTestsPage /></Suspense>} />
         </Route>
 
         {/* Fallback */}

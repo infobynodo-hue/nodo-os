@@ -324,7 +324,7 @@ export function ClientAcademiaPage() {
   const [activeCategory, setActiveCategory] = useState<TutorialCategory | 'all'>('all')
   const [playing, setPlaying] = useState<ClientTutorial | null>(null)
 
-  useEffect(() => { loadData() }, [user])
+  useEffect(() => { loadData() }, [user?.id])
 
   async function loadData() {
     setLoading(true)

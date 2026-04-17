@@ -143,7 +143,7 @@ export function ClientDocsPage() {
 
   useEffect(() => {
     loadData()
-  }, [user])
+  }, [user?.id])
 
   async function loadData() {
     setLoading(true)

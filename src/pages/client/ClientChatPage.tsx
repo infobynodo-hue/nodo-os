@@ -117,7 +117,7 @@ export function ClientChatPage() {
     if (user?.projectId) {
       loadContext()
     }
-  }, [user])
+  }, [user?.id])
 
   useEffect(() => {
     if (project && selectedPlug) {

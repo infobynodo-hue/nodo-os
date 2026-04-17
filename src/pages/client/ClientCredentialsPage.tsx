@@ -193,7 +193,7 @@ export function ClientCredentialsPage() {
 
   useEffect(() => {
     loadData()
-  }, [user])
+  }, [user?.id])
 
   async function loadData() {
     setLoading(true)

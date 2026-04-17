@@ -172,7 +172,7 @@ export function ClientProjectPage() {
 
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadData() }, [user])
+  useEffect(() => { loadData() }, [user?.id])
 
   async function loadData() {
     setLoading(true)

@@ -43,7 +43,7 @@ export function ClientBotPage() {
 
   useEffect(() => {
     loadData()
-  }, [user])
+  }, [user?.id])
 
   async function loadData() {
     if (IS_DEMO) {

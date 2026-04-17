@@ -157,7 +157,7 @@ export function ClientDashboardPage() {
 
   useEffect(() => {
     loadData()
-  }, [user])
+  }, [user?.id])
 
   async function loadData() {
     setLoading(true)

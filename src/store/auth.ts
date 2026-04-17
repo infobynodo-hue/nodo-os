@@ -165,12 +165,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 }))
 
 async function resolveUser(supabaseId: string, email: string): Promise<AuthUser> {
-  // Primero intentar como usuario interno
-  const { data: internalUser } = await supabase
-    .from('internal_users')
-    .select('*')
-    .eq('id', supabaseId)
-    .single()
+  // Lanzar ambas queries en paralelo — ahorra ~200-400ms respecto a secuencial
+  const [{ data: internalUser }, { data: client }] = await Promise.all([
+    supabase.from('internal_users').select('*').eq('id', supabaseId).single(),
+    supabase.from('clients').select('id').eq('contact_email', email).single(),
+  ])
 
   if (internalUser) {
     return {
@@ -181,15 +180,8 @@ async function resolveUser(supabaseId: string, email: string): Promise<AuthUser>
     }
   }
 
-  // Intentar como cliente: buscar por email en clients
-  const { data: client } = await supabase
-    .from('clients')
-    .select('id')
-    .eq('contact_email', email)
-    .single()
-
   if (client) {
-    // Obtener project_id del cliente
+    // Solo una query adicional, necesaria porque depende del client.id
     const { data: project } = await supabase
       .from('projects')
       .select('id')
