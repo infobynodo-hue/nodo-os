@@ -4,6 +4,7 @@ import {
   ChevronLeft, LayoutDashboard, GitBranch, MessageSquare,
   Brain, Send, CreditCard, Puzzle, MoreVertical, Pencil, Power,
   Upload, Loader2, Sparkles, FileDown,
+  Key, Plus, Trash2, Eye, EyeOff, Copy, Check,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
@@ -17,10 +18,10 @@ import { NodoAvatar } from '../../components/ui/NodoAvatar'
 import { SERVICE_LABELS, PLUGS, KNOWLEDGE_CATEGORY_LABELS } from '../../types'
 import type {
   Client, Project, ProjectPhase, Task, BillingRecord,
-  BotKnowledge, PlugRequest, ProjectPlug, KnowledgeCategory
+  BotKnowledge, PlugRequest, ProjectPlug, KnowledgeCategory, ClientCredential
 } from '../../types'
 
-type Tab = 'resumen' | 'fases' | 'onboarding' | 'bot' | 'solicitudes' | 'facturacion' | 'plugs'
+type Tab = 'resumen' | 'fases' | 'onboarding' | 'bot' | 'solicitudes' | 'facturacion' | 'plugs' | 'accesos'
 
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -38,6 +39,7 @@ export function ClientDetailPage() {
   const [knowledge, setKnowledge] = useState<BotKnowledge[]>([])
   const [requests, setRequests] = useState<PlugRequest[]>([])
   const [plugs, setPlugs] = useState<ProjectPlug[]>([])
+  const [credentials, setCredentials] = useState<ClientCredential[]>([])
   const [respondingTo, setRespondingTo] = useState<string | null>(null)
   const [responseText, setResponseText] = useState('')
   const [healthScore, setHealthScore] = useState<{
@@ -81,6 +83,16 @@ export function ClientDetailPage() {
     ])
     setClient(clientRes.data)
     setProject(projectRes.data)
+
+    // Load credentials by client_id
+    if (clientRes.data?.id) {
+      const { data: credsData } = await supabase
+        .from('client_credentials')
+        .select('*')
+        .eq('client_id', clientRes.data.id)
+        .order('created_at', { ascending: false })
+      setCredentials(credsData || [])
+    }
 
     if (projectRes.data?.id) {
       const pid = projectRes.data.id
@@ -177,6 +189,7 @@ export function ClientDetailPage() {
     { id: 'solicitudes', label: `Solicitudes${requests.filter(r => r.status === 'pending').length > 0 ? ` (${requests.filter(r => r.status === 'pending').length})` : ''}`, icon: Send },
     { id: 'facturacion', label: 'Facturación', icon: CreditCard },
     { id: 'plugs', label: 'Plugs', icon: Puzzle },
+    { id: 'accesos', label: 'Accesos', icon: Key },
   ]
 
   return (
@@ -571,6 +584,15 @@ export function ClientDetailPage() {
               </NodoCard>
             ))}
           </div>
+        )}
+
+        {/* ACCESOS */}
+        {tab === 'accesos' && (
+          <AccesosTab
+            clientId={client.id}
+            credentials={credentials}
+            setCredentials={setCredentials}
+          />
         )}
 
         {/* PLUGS */}
@@ -1253,6 +1275,302 @@ function BotKnowledgeTab({
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// Sub-component: Accesos tab
+function AccesosTab({
+  clientId,
+  credentials,
+  setCredentials,
+}: {
+  clientId: string
+  credentials: ClientCredential[]
+  setCredentials: React.Dispatch<React.SetStateAction<ClientCredential[]>>
+}) {
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    label: '',
+    platform: 'otro',
+    username: '',
+    password: '',
+    url: '',
+    notes: '',
+    is_visible_to_client: true,
+  })
+
+  const PLATFORM_OPTIONS = [
+    { value: 'whatsapp_business', label: 'WhatsApp Business' },
+    { value: 'nodo_bot', label: 'Panel NODO Bot' },
+    { value: 'crm', label: 'CRM' },
+    { value: 'instagram', label: 'Instagram' },
+    { value: 'facebook', label: 'Facebook / Meta' },
+    { value: 'google', label: 'Google' },
+    { value: 'email', label: 'Email / Correo' },
+    { value: 'web', label: 'Sitio web' },
+    { value: 'otro', label: 'Otro' },
+  ]
+
+  async function saveCredential() {
+    if (!form.label.trim()) return
+    setSaving(true)
+    try {
+      const { data, error } = await supabase
+        .from('client_credentials')
+        .insert({
+          client_id: clientId,
+          platform: form.platform,
+          label: form.label.trim(),
+          username: form.username.trim() || null,
+          password: form.password.trim() || null,
+          url: form.url.trim() || null,
+          notes: form.notes.trim() || null,
+          is_visible_to_client: form.is_visible_to_client,
+        })
+        .select()
+        .single()
+      if (!error && data) {
+        setCredentials(prev => [data, ...prev])
+        setForm({ label: '', platform: 'otro', username: '', password: '', url: '', notes: '', is_visible_to_client: true })
+        setShowForm(false)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteCredential(credId: string) {
+    if (!confirm('¿Eliminar este acceso?')) return
+    await supabase.from('client_credentials').delete().eq('id', credId)
+    setCredentials(prev => prev.filter(c => c.id !== credId))
+  }
+
+  async function toggleVisibility(cred: ClientCredential) {
+    const newVal = !cred.is_visible_to_client
+    await supabase.from('client_credentials').update({ is_visible_to_client: newVal }).eq('id', cred.id)
+    setCredentials(prev => prev.map(c => c.id === cred.id ? { ...c, is_visible_to_client: newVal } : c))
+  }
+
+  return (
+    <div className="space-y-4 fade-in">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-[#1A1F2E]">Accesos del cliente</p>
+          <p className="text-xs text-[#9CA3AF] mt-0.5">Credenciales y contraseñas gestionadas por NODO. Puedes decidir cuáles ve el cliente.</p>
+        </div>
+        <button
+          onClick={() => setShowForm(v => !v)}
+          className="flex items-center gap-1.5 px-3 py-2 bg-[#1A1F2E] text-white text-xs font-semibold rounded-xl hover:bg-[#2A2F3E] transition-colors"
+        >
+          <Plus size={13} />
+          Nuevo acceso
+        </button>
+      </div>
+
+      {/* Create form */}
+      {showForm && (
+        <div className="rounded-2xl border border-[#C026A8]/20 bg-[#C026A8]/3 p-4 space-y-3">
+          <p className="text-xs font-bold text-[#1A1F2E] uppercase tracking-wider">Nuevo acceso</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1 block">Nombre *</label>
+              <input
+                value={form.label}
+                onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+                placeholder="ej: Panel de control, Meta Business…"
+                className="w-full text-sm border border-[#E5E8EF] rounded-xl px-3 py-2 outline-none focus:border-[#C026A8]/50 bg-white text-[#1A1F2E] placeholder:text-[#9CA3AF]"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1 block">Plataforma</label>
+              <select
+                value={form.platform}
+                onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
+                className="w-full text-sm border border-[#E5E8EF] rounded-xl px-3 py-2 outline-none focus:border-[#C026A8]/50 bg-white text-[#1A1F2E]"
+              >
+                {PLATFORM_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1 block">Usuario / Email / Teléfono</label>
+              <input
+                value={form.username}
+                onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                placeholder="usuario@email.com o +34 600…"
+                className="w-full text-sm border border-[#E5E8EF] rounded-xl px-3 py-2 outline-none focus:border-[#C026A8]/50 bg-white text-[#1A1F2E] placeholder:text-[#9CA3AF]"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1 block">Contraseña</label>
+              <input
+                value={form.password}
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                placeholder="Contraseña o PIN"
+                className="w-full text-sm border border-[#E5E8EF] rounded-xl px-3 py-2 outline-none focus:border-[#C026A8]/50 bg-white text-[#1A1F2E] placeholder:text-[#9CA3AF] font-mono"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1 block">URL (opcional)</label>
+              <input
+                value={form.url}
+                onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+                placeholder="https://…"
+                className="w-full text-sm border border-[#E5E8EF] rounded-xl px-3 py-2 outline-none focus:border-[#C026A8]/50 bg-white text-[#1A1F2E] placeholder:text-[#9CA3AF]"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1 block">Notas (opcional)</label>
+              <input
+                value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Observaciones…"
+                className="w-full text-sm border border-[#E5E8EF] rounded-xl px-3 py-2 outline-none focus:border-[#C026A8]/50 bg-white text-[#1A1F2E] placeholder:text-[#9CA3AF]"
+              />
+            </div>
+          </div>
+          {/* Visibility toggle */}
+          <div className="flex items-center justify-between pt-1">
+            <div>
+              <p className="text-xs font-semibold text-[#1A1F2E]">Visible para el cliente</p>
+              <p className="text-[10px] text-[#9CA3AF]">Si está activo, el cliente lo verá en su portal</p>
+            </div>
+            <button
+              onClick={() => setForm(f => ({ ...f, is_visible_to_client: !f.is_visible_to_client }))}
+              className={`relative w-10 h-5 rounded-full transition-colors ${form.is_visible_to_client ? 'bg-[#C8F135]' : 'bg-[#D1D5DB]'}`}
+            >
+              <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form.is_visible_to_client ? 'left-5' : 'left-0.5'}`} />
+            </button>
+          </div>
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={saveCredential}
+              disabled={saving || !form.label.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#1A1F2E] text-white text-xs font-semibold rounded-xl hover:bg-[#2A2F3E] transition-colors disabled:opacity-50"
+            >
+              {saving ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /> : <Check size={12} />}
+              Guardar
+            </button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="px-4 py-2 text-xs font-semibold text-[#9CA3AF] hover:text-[#1A1F2E] transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Credentials list */}
+      {credentials.length === 0 ? (
+        <div className="rounded-2xl border border-[#E5E8EF] bg-white p-10 text-center">
+          <Key size={32} className="text-[#D1D5DB] mx-auto mb-2" />
+          <p className="text-sm text-[#9CA3AF] font-medium">Sin accesos registrados</p>
+          <p className="text-xs text-[#9CA3AF]/70 mt-1">Pulsa "Nuevo acceso" para añadir credenciales para este cliente</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {credentials.map(cred => (
+            <InternalCredentialCard
+              key={cred.id}
+              cred={cred}
+              onDelete={() => deleteCredential(cred.id)}
+              onToggleVisibility={() => toggleVisibility(cred)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InternalCredentialCard({
+  cred,
+  onDelete,
+  onToggleVisibility,
+}: {
+  cred: ClientCredential
+  onDelete: () => void
+  onToggleVisibility: () => void
+}) {
+  const [showPassword, setShowPassword] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function copyPassword() {
+    if (!cred.password) return
+    await navigator.clipboard.writeText(cred.password)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#E5E8EF] bg-white overflow-hidden">
+      <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#C026A8]/10 to-[#8B22E8]/10 border border-[#C026A8]/15 flex items-center justify-center flex-shrink-0">
+          <Key size={14} className="text-[#C026A8]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-[#1A1F2E] truncate">{cred.label}</p>
+          <p className="text-[10px] text-[#9CA3AF]">{cred.platform}</p>
+        </div>
+        {/* Visibility badge */}
+        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+          cred.is_visible_to_client
+            ? 'bg-emerald-50 text-emerald-600'
+            : 'bg-[#F4F6F9] text-[#9CA3AF]'
+        }`}>
+          {cred.is_visible_to_client ? 'Cliente ve' : 'Solo NODO'}
+        </span>
+      </div>
+      <div className="border-t border-[#E5E8EF]" />
+      <div className="px-4 py-3 space-y-2">
+        {cred.username && (
+          <div>
+            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-0.5">Usuario</p>
+            <p className="text-xs font-mono text-[#1A1F2E] bg-[#F4F6F9] rounded-lg px-2.5 py-1.5 truncate">{cred.username}</p>
+          </div>
+        )}
+        {cred.password && (
+          <div>
+            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-0.5">Contraseña</p>
+            <div className="flex gap-1.5">
+              <div className="flex-1 flex items-center bg-[#F4F6F9] rounded-lg px-2.5 py-1.5">
+                <p className="text-xs font-mono text-[#1A1F2E] flex-1 truncate">
+                  {showPassword ? cred.password : '••••••••'}
+                </p>
+              </div>
+              <button onClick={() => setShowPassword(v => !v)} className="w-7 h-7 rounded-lg bg-[#F4F6F9] flex items-center justify-center text-[#9CA3AF] hover:text-[#1A1F2E] transition-colors">
+                {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
+              </button>
+              <button onClick={copyPassword} className="w-7 h-7 rounded-lg bg-[#F4F6F9] flex items-center justify-center text-[#9CA3AF] hover:text-[#1A1F2E] transition-colors">
+                {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+              </button>
+            </div>
+          </div>
+        )}
+        {cred.notes && <p className="text-[10px] text-[#9CA3AF] leading-relaxed">{cred.notes}</p>}
+      </div>
+      {/* Actions */}
+      <div className="border-t border-[#E5E8EF] px-4 py-2 flex items-center gap-2">
+        <button
+          onClick={onToggleVisibility}
+          className="text-[10px] text-[#9CA3AF] hover:text-[#C026A8] transition-colors font-medium"
+        >
+          {cred.is_visible_to_client ? 'Ocultar al cliente' : 'Mostrar al cliente'}
+        </button>
+        <div className="flex-1" />
+        <button
+          onClick={onDelete}
+          className="w-6 h-6 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-red-500 hover:bg-red-50 transition-colors"
+        >
+          <Trash2 size={11} />
+        </button>
+      </div>
     </div>
   )
 }
