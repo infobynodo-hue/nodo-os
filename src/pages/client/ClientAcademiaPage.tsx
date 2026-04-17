@@ -106,6 +106,48 @@ function getVideoPlatform(url: string): 'youtube' | 'loom' | 'vimeo' | 'otro' {
 
 const PLATFORM_LABELS = { youtube: 'YouTube', loom: 'Loom', vimeo: 'Vimeo', otro: 'Ver enlace' }
 
+// ─── NODO branded thumbnail (used for Loom videos) ───────────────────────────
+function NodoThumbnail({ onPlay, tutorial }: { onPlay: () => void; tutorial: ClientTutorial }) {
+  return (
+    <div
+      className="relative h-40 overflow-hidden cursor-pointer"
+      onClick={onPlay}
+      style={{ background: 'linear-gradient(135deg, #3730a3 0%, #7c3aed 45%, #c026a8 100%)' }}
+    >
+      {/* Grid pattern overlay */}
+      <div className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+        }}
+      />
+      {/* Logo wordmark */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur flex items-center justify-center">
+            <span className="text-white font-black text-sm tracking-tight">N</span>
+          </div>
+          <span className="text-white font-black text-lg tracking-tight">NODO ONE</span>
+        </div>
+        <span className="text-white/60 text-[10px] font-medium uppercase tracking-widest">Portal de cliente</span>
+      </div>
+      {/* Play button */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+        <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+          <Play size={22} className="text-[#12101A] ml-1" fill="#12101A" />
+        </div>
+      </div>
+      {/* Duration badge */}
+      {tutorial.duration_min && (
+        <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-md px-2 py-0.5">
+          <Clock size={10} className="text-white/70" />
+          <span className="text-[10px] text-white/80 font-medium">{tutorial.duration_min} min</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Tutorial card ────────────────────────────────────────────────────────────
 function TutorialCard({
   tutorial,
@@ -118,56 +160,62 @@ function TutorialCard({
 }) {
   const cfg = CATEGORY_CONFIG[tutorial.category] ?? CATEGORY_CONFIG.general
   const CatIcon = cfg.icon
-  const thumb    = tutorial.thumbnail_url || (tutorial.video_url ? getVideoThumbnail(tutorial.video_url) : null)
   const platform = tutorial.video_url ? getVideoPlatform(tutorial.video_url) : null
+  // For Loom videos: always show NODO branded thumbnail (not the Loom GIF)
+  const isLoom = platform === 'loom'
+  const thumb = isLoom ? null : (tutorial.thumbnail_url || (tutorial.video_url ? getVideoThumbnail(tutorial.video_url) : null))
 
   return (
     <div className="rounded-2xl border border-[#E8E6F0] bg-white overflow-hidden group hover:border-[#C026A8]/30 transition-all hover:translate-y-[-2px]">
       {/* Thumbnail */}
-      <div className="relative h-40 overflow-hidden">
-        {thumb ? (
-          <img src={thumb} alt={tutorial.title} className="w-full h-full object-cover" />
-        ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${cfg.gradient} opacity-80 flex items-center justify-center`}>
-            <CatIcon size={40} className="text-white/50" />
-          </div>
-        )}
-        {/* Play overlay */}
-        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={() => onPlay(tutorial)}
-            className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
-          >
-            <Play size={22} className="text-[#12101A] ml-1" fill="#12101A" />
-          </button>
-        </div>
-        {/* Duration + platform badge */}
-        <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-          {platform && platform !== 'otro' && (
-            <div className="flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-2 py-0.5">
-              <span className="text-[10px] text-white/70 font-medium">{PLATFORM_LABELS[platform]}</span>
+      {isLoom ? (
+        <NodoThumbnail onPlay={() => onPlay(tutorial)} tutorial={tutorial} />
+      ) : (
+        <div className="relative h-40 overflow-hidden">
+          {thumb ? (
+            <img src={thumb} alt={tutorial.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className={`w-full h-full bg-gradient-to-br ${cfg.gradient} opacity-80 flex items-center justify-center`}>
+              <CatIcon size={40} className="text-white/50" />
             </div>
           )}
-          {tutorial.duration_min && (
-            <div className="flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-2 py-0.5">
-              <Clock size={10} className="text-white/70" />
-              <span className="text-[10px] text-white/80 font-medium">{tutorial.duration_min} min</span>
+          {/* Play overlay */}
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => onPlay(tutorial)}
+              className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
+            >
+              <Play size={22} className="text-[#12101A] ml-1" fill="#12101A" />
+            </button>
+          </div>
+          {/* Duration + platform badge */}
+          <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+            {platform && platform !== 'otro' && (
+              <div className="flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-2 py-0.5">
+                <span className="text-[10px] text-white/70 font-medium">{PLATFORM_LABELS[platform]}</span>
+              </div>
+            )}
+            {tutorial.duration_min && (
+              <div className="flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-2 py-0.5">
+                <Clock size={10} className="text-white/70" />
+                <span className="text-[10px] text-white/80 font-medium">{tutorial.duration_min} min</span>
+              </div>
+            )}
+          </div>
+          {/* Exclusive badge */}
+          {isExclusive && (
+            <div className="absolute top-2 left-2 flex items-center gap-1 bg-[#C026A8]/90 backdrop-blur-sm rounded-md px-2 py-0.5">
+              <Star size={9} className="text-white" fill="white" />
+              <span className="text-[9px] text-white font-bold uppercase tracking-wide">Para ti</span>
             </div>
           )}
-        </div>
-        {/* Exclusive badge */}
-        {isExclusive && (
-          <div className="absolute top-2 left-2 flex items-center gap-1 bg-[#C026A8]/90 backdrop-blur-sm rounded-md px-2 py-0.5">
-            <Star size={9} className="text-white" fill="white" />
-            <span className="text-[9px] text-white font-bold uppercase tracking-wide">Para ti</span>
+          {/* Category badge */}
+          <div className={`absolute top-2 right-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-2 py-0.5 ${isExclusive ? 'hidden' : ''}`}>
+            <CatIcon size={9} className={cfg.color} />
+            <span className={`text-[9px] font-semibold ${cfg.color}`}>{TUTORIAL_CATEGORY_LABELS[tutorial.category]}</span>
           </div>
-        )}
-        {/* Category badge */}
-        <div className={`absolute top-2 right-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-2 py-0.5 ${isExclusive ? 'hidden' : ''}`}>
-          <CatIcon size={9} className={cfg.color} />
-          <span className={`text-[9px] font-semibold ${cfg.color}`}>{TUTORIAL_CATEGORY_LABELS[tutorial.category]}</span>
         </div>
-      </div>
+      )}
 
       {/* Body */}
       <div className="p-4">
