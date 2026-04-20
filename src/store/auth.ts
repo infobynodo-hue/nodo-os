@@ -189,6 +189,12 @@ async function resolveUser(supabaseId: string, email: string): Promise<AuthUser>
       .eq('status', 'active')
       .single()
 
+    // Registrar login del cliente (fire-and-forget, no bloquea el auth)
+    supabase.from('client_portal_logins').insert({
+      client_id: client.id,
+      user_id: supabaseId,
+    }).then(() => {}) // ignorar error si falla
+
     return {
       id: supabaseId,
       email,

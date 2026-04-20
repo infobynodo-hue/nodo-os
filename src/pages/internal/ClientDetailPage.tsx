@@ -4,7 +4,7 @@ import {
   ChevronLeft, LayoutDashboard, GitBranch, MessageSquare,
   Brain, Send, CreditCard, Puzzle, MoreVertical, Pencil, Power,
   Upload, Loader2, Sparkles, FileDown,
-  Key, Plus, Trash2, Eye, EyeOff, Copy, Check,
+  Key, Plus, Trash2, Eye, EyeOff, Copy, Check, Activity, LogIn, Clock, TrendingUp,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
@@ -21,7 +21,7 @@ import type {
   BotKnowledge, PlugRequest, ProjectPlug, KnowledgeCategory, ClientCredential
 } from '../../types'
 
-type Tab = 'resumen' | 'fases' | 'onboarding' | 'bot' | 'solicitudes' | 'facturacion' | 'plugs' | 'accesos'
+type Tab = 'resumen' | 'fases' | 'onboarding' | 'bot' | 'solicitudes' | 'facturacion' | 'plugs' | 'accesos' | 'actividad'
 
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -40,6 +40,7 @@ export function ClientDetailPage() {
   const [requests, setRequests] = useState<PlugRequest[]>([])
   const [plugs, setPlugs] = useState<ProjectPlug[]>([])
   const [credentials, setCredentials] = useState<ClientCredential[]>([])
+  const [logins, setLogins] = useState<{ id: string; logged_at: string }[]>([])
   const [respondingTo, setRespondingTo] = useState<string | null>(null)
   const [responseText, setResponseText] = useState('')
   const [healthScore, setHealthScore] = useState<{
@@ -84,14 +85,14 @@ export function ClientDetailPage() {
     setClient(clientRes.data)
     setProject(projectRes.data)
 
-    // Load credentials by client_id
+    // Load credentials y logins por client_id
     if (clientRes.data?.id) {
-      const { data: credsData } = await supabase
-        .from('client_credentials')
-        .select('*')
-        .eq('client_id', clientRes.data.id)
-        .order('created_at', { ascending: false })
+      const [{ data: credsData }, { data: loginsData }] = await Promise.all([
+        supabase.from('client_credentials').select('*').eq('client_id', clientRes.data.id).order('created_at', { ascending: false }),
+        supabase.from('client_portal_logins').select('id, logged_at').eq('client_id', clientRes.data.id).order('logged_at', { ascending: false }).limit(100),
+      ])
       setCredentials(credsData || [])
+      setLogins(loginsData || [])
     }
 
     if (projectRes.data?.id) {
@@ -190,6 +191,7 @@ export function ClientDetailPage() {
     { id: 'facturacion', label: 'Facturación', icon: CreditCard },
     { id: 'plugs', label: 'Plugs', icon: Puzzle },
     { id: 'accesos', label: 'Accesos', icon: Key },
+    { id: 'actividad', label: 'Actividad', icon: Activity },
   ]
 
   return (
@@ -593,6 +595,11 @@ export function ClientDetailPage() {
             credentials={credentials}
             setCredentials={setCredentials}
           />
+        )}
+
+        {/* ACTIVIDAD */}
+        {tab === 'actividad' && (
+          <ActividadTab logins={logins} />
         )}
 
         {/* PLUGS */}
@@ -1570,6 +1577,106 @@ function InternalCredentialCard({
         >
           <Trash2 size={11} />
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── ACTIVIDAD TAB ───────────────────────────────────────────────────────────
+function ActividadTab({ logins }: { logins: { id: string; logged_at: string }[] }) {
+  const total = logins.length
+  const ultima = logins[0]?.logged_at ?? null
+
+  // Agrupar por día para el historial
+  const byDay = logins.reduce<Record<string, number>>((acc, l) => {
+    const day = new Date(l.logged_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+    acc[day] = (acc[day] ?? 0) + 1
+    return acc
+  }, {})
+
+  const days = Object.entries(byDay) // ya viene ordenado por logged_at desc
+
+  function timeAgo(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime()
+    const m = Math.floor(diff / 60000)
+    if (m < 1) return 'hace un momento'
+    if (m < 60) return `hace ${m} min`
+    const h = Math.floor(m / 60)
+    if (h < 24) return `hace ${h}h`
+    const d = Math.floor(h / 24)
+    if (d < 7) return `hace ${d}d`
+    return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+  }
+
+  function formatFull(iso: string) {
+    return new Date(iso).toLocaleString('es-ES', {
+      weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
+  }
+
+  if (total === 0) {
+    return (
+      <div className="fade-in flex flex-col items-center justify-center py-20 gap-3">
+        <div className="w-12 h-12 rounded-2xl bg-[#F4F6F9] flex items-center justify-center">
+          <Activity size={22} className="text-[#9CA3AF]" />
+        </div>
+        <p className="text-sm font-semibold text-[#1A1F2E]">Sin actividad registrada</p>
+        <p className="text-xs text-[#9CA3AF] text-center max-w-xs">
+          El historial de accesos al portal aparecerá aquí en cuanto el cliente inicie sesión.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fade-in space-y-4">
+      {/* Stats cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-2xl border border-[#E5E8EF] bg-white p-4 flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-[#9CA3AF] mb-1">
+            <LogIn size={14} />
+            <span className="text-xs font-medium">Total sesiones</span>
+          </div>
+          <p className="text-2xl font-bold text-[#1A1F2E]">{total}</p>
+        </div>
+        <div className="rounded-2xl border border-[#E5E8EF] bg-white p-4 flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-[#9CA3AF] mb-1">
+            <Clock size={14} />
+            <span className="text-xs font-medium">Última sesión</span>
+          </div>
+          <p className="text-sm font-bold text-[#1A1F2E]">{ultima ? timeAgo(ultima) : '—'}</p>
+          {ultima && <p className="text-[10px] text-[#9CA3AF]">{formatFull(ultima)}</p>}
+        </div>
+        <div className="rounded-2xl border border-[#E5E8EF] bg-white p-4 flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-[#9CA3AF] mb-1">
+            <TrendingUp size={14} />
+            <span className="text-xs font-medium">Días distintos</span>
+          </div>
+          <p className="text-2xl font-bold text-[#1A1F2E]">{days.length}</p>
+        </div>
+      </div>
+
+      {/* Historial agrupado por día */}
+      <div className="rounded-2xl border border-[#E5E8EF] bg-white overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#E5E8EF]">
+          <p className="text-xs font-semibold text-[#1A1F2E]">Historial de accesos</p>
+        </div>
+        <div className="divide-y divide-[#F4F6F9]">
+          {days.map(([day, count]) => (
+            <div key={day} className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-[#F4F6F9] flex items-center justify-center flex-shrink-0">
+                  <LogIn size={12} className="text-[#7C3AED]" />
+                </div>
+                <p className="text-sm text-[#1A1F2E] font-medium">{day}</p>
+              </div>
+              <span className="text-xs font-semibold text-[#7C3AED] bg-[#F3F0FF] px-2 py-0.5 rounded-full">
+                {count} {count === 1 ? 'sesión' : 'sesiones'}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
