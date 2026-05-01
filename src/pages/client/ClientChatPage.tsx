@@ -73,7 +73,11 @@ export function ClientChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
-  const [selectedPlug, setSelectedPlug] = useState<PlugId>('onboarding')
+  // Recupera la última pestaña que el usuario usó (localStorage) para que no "desaparezcan" mensajes
+  const [selectedPlug, setSelectedPlug] = useState<PlugId>(() => {
+    const saved = localStorage.getItem('nodo_last_plug') as PlugId | null
+    return saved || 'onboarding'
+  })
   const [availablePlugs, setAvailablePlugs] = useState<ProjectPlug[]>([])
   const [project, setProject] = useState<Project | null>(null)
   const [client, setClient] = useState<Client | null>(null)
@@ -122,6 +126,7 @@ export function ClientChatPage() {
 
   useEffect(() => {
     if (project && selectedPlug) {
+      localStorage.setItem('nodo_last_plug', selectedPlug)
       loadMessages(selectedPlug)
       setAttachedFile(null)
     }
@@ -153,9 +158,13 @@ export function ClientChatPage() {
       if (metricsData) setBotMetrics(metricsData)
     }
 
-    // Set default plug to first available
+    // Set plug: respeta el último que usó el cliente (localStorage).
+    // Si no hay guardado o ya no está habilitado, usa el primero disponible.
     if (plugsRes.data && plugsRes.data.length > 0) {
-      setSelectedPlug(plugsRes.data[0].plug_id as PlugId)
+      const enabledIds = plugsRes.data.map(p => p.plug_id)
+      const lastUsed = localStorage.getItem('nodo_last_plug') as PlugId | null
+      const fallback = plugsRes.data[0].plug_id as PlugId
+      setSelectedPlug(lastUsed && enabledIds.includes(lastUsed) ? lastUsed : fallback)
     }
   }
 
@@ -506,6 +515,9 @@ export function ClientChatPage() {
 
   const currentPlugDef = PLUGS.find(p => p.id === selectedPlug)
   const enabledPlugIds = availablePlugs.map(p => p.plug_id)
+  // Plugs que aceptan archivos — fallback explícito para cuando currentPlugDef sea undefined
+  const PLUGS_WITH_FILES: PlugId[] = ['onboarding', 'new_info', 'request_change', 'report_error']
+  const currentPlugAcceptsFiles = currentPlugDef?.accepts_files ?? PLUGS_WITH_FILES.includes(selectedPlug)
 
   const gestionPlugs = PLUGS.filter(p => p.category === 'gestion')
   const comunicacionPlugs = PLUGS.filter(p => p.category === 'comunicacion')
@@ -706,8 +718,8 @@ export function ClientChatPage() {
             {recording ? <MicOff size={16} /> : <Mic size={16} />}
           </button>
 
-          {/* File attach button — only for plugs that accept files */}
-          {currentPlugDef?.accepts_files && (
+          {/* File attach button — plugs que aceptan archivos */}
+          {currentPlugAcceptsFiles && (
             <>
               <input
                 ref={fileInputRef}
