@@ -60,6 +60,7 @@ type ApiMessageContent =
   | Array<
       | { type: 'text'; text: string }
       | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+      | { type: 'document'; source: { type: 'base64'; media_type: string; data: string } }
     >
 
 type ApiMessage = {
@@ -168,18 +169,32 @@ export function ClientChatPage() {
       .order('created_at', { ascending: true })
       .limit(100)
     setMessages(data || [])
+
   }
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !user?.projectId) return
+
+    // Hard limit: 50 MB. Por encima de eso ni el servidor puede manejarlo.
+    const HARD_LIMIT = 50 * 1024 * 1024
+    if (file.size > HARD_LIMIT) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
+      setMessages(prev => [...prev, {
+        id: 'file-error-' + Date.now(),
+        project_id: user.projectId!,
+        session_type: selectedPlug,
+        role: 'assistant' as const,
+        content: `⚠️ El archivo **${file.name}** pesa ${sizeMB} MB y supera el límite de 50 MB. Intenta comprimirlo en smallpdf.com o dividirlo en partes.`,
+        created_at: new Date().toISOString(),
+      }])
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
     setUploading(true)
     try {
-      // Upload to Supabase Storage
-      const filePath = `${user.projectId}/${Date.now()}-${file.name}`
-      await supabase.storage.from('client-documents').upload(filePath, file)
-
-      // Extract content based on file type
+      // Extract content based on file type (browser-side, no storage needed to proceed)
       let extractedContent = ''
       if (file.type === 'text/plain' || file.type === 'text/csv') {
         extractedContent = await file.text()
@@ -187,14 +202,36 @@ export function ClientChatPage() {
         const base64 = await fileToBase64(file)
         extractedContent = `[IMAGEN_ADJUNTA:${base64}:${file.type}]`
       } else if (file.type === 'application/pdf') {
-        extractedContent = `[ARCHIVO PDF: ${file.name}] El usuario ha subido un PDF. Indícale que el equipo lo revisará y procesará el contenido manualmente si no se puede extraer automáticamente.`
+        // PDFs pequeños (<20 MB): base64 directo a Claude (más fiel al original)
+        // PDFs grandes (≥20 MB): Edge Function extrae el texto server-side (sin límites de payload)
+        const DIRECT_LIMIT = 20 * 1024 * 1024
+        if (file.size >= DIRECT_LIMIT) {
+          extractedContent = await extractPdfViaEdgeFunction(file)
+        } else {
+          const base64 = await fileToBase64(file)
+          extractedContent = `[PDF_BASE64:${base64}:application/pdf]`
+        }
       } else {
         extractedContent = `[ARCHIVO: ${file.name} (${file.type})] El usuario ha adjuntado un archivo de tipo ${file.type}.`
       }
 
       setAttachedFile({ name: file.name, type: file.type, content: extractedContent })
+
+      // Upload to Supabase Storage in background (non-blocking)
+      const filePath = `${user.projectId}/${Date.now()}-${file.name}`
+      supabase.storage.from('client-documents').upload(filePath, file).catch(() => {
+        // Storage upload failure is non-critical — the file content is already available
+      })
     } catch (err) {
-      console.error('Error uploading file:', err)
+      console.error('Error procesando archivo:', err)
+      setMessages(prev => [...prev, {
+        id: 'file-error-' + Date.now(),
+        project_id: user.projectId!,
+        session_type: selectedPlug,
+        role: 'assistant' as const,
+        content: `⚠️ No se pudo leer el archivo **${file.name}**. Asegúrate de que no esté protegido con contraseña e inténtalo de nuevo.`,
+        created_at: new Date().toISOString(),
+      }])
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -208,6 +245,42 @@ export function ClientChatPage() {
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
+  }
+
+  /**
+   * Extrae el texto de un PDF usando la Edge Function `import-pdf`.
+   * Se usa para PDFs ≥20 MB donde el base64 directo superaría los límites de la API.
+   * Devuelve el contenido ya formateado para enviarlo a Claude como texto plano.
+   */
+  async function extractPdfViaEdgeFunction(file: File): Promise<string> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const { data, error } = await supabase.functions.invoke('import-pdf', {
+      body: formData,
+    })
+
+    if (error) {
+      throw new Error(`Edge Function error: ${error.message}`)
+    }
+
+    if (data?.error) {
+      throw new Error(data.error)
+    }
+
+    const text: string = data?.text ?? ''
+    const pages: number = data?.pages ?? 0
+    const truncated: boolean = data?.truncated ?? false
+
+    if (!text.trim()) {
+      throw new Error(
+        'El PDF no tiene texto extraíble. Puede ser un documento escaneado (imagen). ' +
+        'Prueba a copiar el texto manualmente y pegarlo en el chat.'
+      )
+    }
+
+    const header = `[CONTENIDO EXTRAÍDO DEL PDF: ${file.name} — ${pages} página${pages !== 1 ? 's' : ''}${truncated ? ' (truncado por longitud)' : ''}]\n\n`
+    return header + text
   }
 
   async function handlePlugActions(response: string, plugId: PlugId) {
@@ -291,7 +364,9 @@ export function ClientChatPage() {
   }
 
   async function sendMessage() {
-    if (!input.trim() || !user?.projectId || !project || !client) return
+    const hasText = input.trim().length > 0
+    const hasFile = !!attachedFile
+    if ((!hasText && !hasFile) || !user?.projectId || !project || !client) return
     setSending(true)
     const userContent = input.trim()
     setInput('')
@@ -320,25 +395,45 @@ export function ClientChatPage() {
     }
 
     try {
-      // Build history for Claude — use plain content for all past messages
-      const history: ApiMessage[] = messages.map(m => ({ role: m.role, content: m.content }))
+      // Build history for Claude — only last 20 messages to keep requests lightweight
+      const recentMessages = messages.slice(-20)
+      const history: ApiMessage[] = recentMessages.map(m => ({ role: m.role, content: m.content }))
 
       // Build the last user message content (with optional file)
+      const defaultPdfPrompt = 'He subido un documento con información de mi negocio. Por favor, extrae toda la información relevante (productos, servicios, precios, horarios, condiciones) y confírmame lo que encontraste para asegurarnos de que está todo correcto antes de añadirlo.'
+
       if (fileSnapshot?.type.startsWith('image/')) {
+        // Imagen → content array con source base64
         const base64 = fileSnapshot.content
           .replace('[IMAGEN_ADJUNTA:', '')
           .split(':')[0]
         history.push({
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: fileSnapshot.type, data: base64 },
-            },
+            { type: 'image', source: { type: 'base64', media_type: fileSnapshot.type, data: base64 } },
             { type: 'text', text: userContent },
           ],
         })
+      } else if (fileSnapshot?.type === 'application/pdf' && fileSnapshot.content.startsWith('[PDF_BASE64:')) {
+        // PDF pequeño (<20 MB) → base64 directo como document block
+        const base64 = fileSnapshot.content
+          .replace('[PDF_BASE64:', '')
+          .split(':')[0]
+        history.push({
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+            { type: 'text', text: userContent || defaultPdfPrompt },
+          ],
+        })
+      } else if (fileSnapshot?.type === 'application/pdf') {
+        // PDF grande (≥20 MB) → texto extraído por Edge Function, se envía como texto plano
+        history.push({
+          role: 'user',
+          content: `${userContent || defaultPdfPrompt}\n\n${fileSnapshot.content}`,
+        })
       } else if (fileSnapshot) {
+        // Otros archivos (txt, csv, etc.)
         history.push({
           role: 'user',
           content: `${userContent}\n\n${fileSnapshot.content}`,
@@ -369,26 +464,30 @@ export function ClientChatPage() {
       // Post-response actions
       await handlePlugActions(response, selectedPlug)
 
-      // Actualizar onboarding session si aplica
-      if (selectedPlug === 'onboarding') {
-        const completionPct = Math.min(100, Math.round((messages.length / 20) * 100))
-        await supabase
-          .from('onboarding_sessions')
-          .update({
-            status: 'in_progress',
-            completion_pct: completionPct,
-            last_activity: new Date().toISOString(),
-          })
-          .eq('project_id', user.projectId)
-      }
     } catch (err) {
-      console.error('Error enviando mensaje:', err)
+      console.error('sendMessage error:', err)
+      const errMsg = err instanceof Error ? err.message : String(err)
+      const isTimeout = errMsg.includes('tardó demasiado') || errMsg.includes('AbortError')
+      const isOverloaded = errMsg.includes('529') || errMsg.includes('overloaded')
+      const isTooLarge = errMsg.includes('413') || errMsg.includes('too large') || errMsg.includes('Request too large')
+
+      let content: string
+      if (isTimeout) {
+        content = '⏱ La respuesta tardó demasiado. Esto suele pasar con archivos grandes o conexión lenta. Espera unos segundos e inténtalo de nuevo.'
+      } else if (isTooLarge) {
+        content = '⚠️ El archivo es demasiado grande para procesarlo. Intenta con un PDF más pequeño (menos de 8 MB) o dividido en páginas.'
+      } else if (isOverloaded) {
+        content = '⏳ El servicio está con mucha demanda ahora mismo. Espera unos segundos e inténtalo de nuevo.'
+      } else {
+        content = `⚠️ Hubo un problema al procesar tu mensaje. Por favor, inténtalo de nuevo.`
+      }
+
       const errorMsg: ChatMessage = {
         id: 'error-' + Date.now(),
         project_id: user.projectId,
         session_type: selectedPlug,
         role: 'assistant',
-        content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, inténtalo de nuevo.',
+        content,
         created_at: new Date().toISOString(),
       }
       setMessages(prev => [...prev, errorMsg])
@@ -479,11 +578,13 @@ export function ClientChatPage() {
 
         {/* Current plug detail description with enhanced info */}
         {currentPlugDef && (
-          <div className="mt-2 px-3 py-2 bg-[#F4F3F9] border border-[#E8E6F0] rounded-lg flex items-start gap-2">
-            <span className="text-base flex-shrink-0 mt-0.5">{PLUG_INFO[currentPlugDef.id]?.icon ?? currentPlugDef.icon}</span>
-            <div>
-              <p className="text-xs font-semibold text-[#1A1827]">{PLUG_INFO[currentPlugDef.id]?.title ?? currentPlugDef.label}</p>
-              <p className="text-xs text-[#6B6B80] leading-relaxed mt-0.5">{PLUG_INFO[currentPlugDef.id]?.desc ?? currentPlugDef.detail}</p>
+          <div className="mt-2 px-3 py-2 bg-[#F4F3F9] border border-[#E8E6F0] rounded-lg">
+            <div className="flex items-start gap-2">
+              <span className="text-base flex-shrink-0 mt-0.5">{PLUG_INFO[currentPlugDef.id]?.icon ?? currentPlugDef.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-[#1A1827]">{PLUG_INFO[currentPlugDef.id]?.title ?? currentPlugDef.label}</p>
+                <p className="text-xs text-[#6B6B80] leading-relaxed mt-0.5">{PLUG_INFO[currentPlugDef.id]?.desc ?? currentPlugDef.detail}</p>
+              </div>
             </div>
           </div>
         )}
@@ -631,7 +732,7 @@ export function ClientChatPage() {
             size="md"
             onClick={sendMessage}
             loading={sending}
-            disabled={!input.trim() || uploading}
+            disabled={(!input.trim() && !attachedFile) || uploading || sending}
             icon={<Send size={14} />}
           >
             <span className="sr-only">Enviar</span>
@@ -715,26 +816,41 @@ async function callClaude(
     return 'La API de Claude no está configurada. Añade VITE_ANTHROPIC_API_KEY en .env.local'
   }
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
-    }),
-  })
+  // Abort after 90 seconds to prevent infinite loading (PDFs tardan más)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 90_000)
 
-  if (!response.ok) {
-    throw new Error(`Claude API error: ${response.status}`)
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: messages.map(m => ({ role: m.role, content: m.content })),
+      }),
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '')
+      throw new Error(`Claude API error ${response.status}: ${errorBody}`)
+    }
+
+    const data = await response.json() as { content: Array<{ text: string }> }
+    return data.content[0].text
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('La respuesta tardó demasiado. Por favor, inténtalo de nuevo.')
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
   }
-
-  const data = await response.json() as { content: Array<{ text: string }> }
-  return data.content[0].text
 }
