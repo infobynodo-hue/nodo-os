@@ -83,6 +83,7 @@ export function ClientChatPage() {
   const [client, setClient] = useState<Client | null>(null)
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<'uploading' | 'extracting' | null>(null)
   const [recording, setRecording] = useState(false)
   const [botMetrics, setBotMetrics] = useState<Array<{
     week_start: string; conversations: number; messages_total: number;
@@ -202,6 +203,7 @@ export function ClientChatPage() {
     }
 
     setUploading(true)
+    setUploadStatus('uploading')
     try {
       // Extract content based on file type
       let extractedContent = ''
@@ -241,6 +243,7 @@ export function ClientChatPage() {
       }])
     } finally {
       setUploading(false)
+      setUploadStatus(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -268,7 +271,8 @@ export function ClientChatPage() {
   async function uploadToStorageAndExtract(file: File): Promise<string> {
     if (!user?.projectId) throw new Error('No hay proyecto activo')
 
-    // Paso 1: Subir a Supabase Storage (obligatorio, no en background)
+    // Paso 1: Subir a Supabase Storage
+    setUploadStatus('uploading')
     const storagePath = `${user.projectId}/${Date.now()}-${file.name}`
     const { error: uploadError } = await supabase.storage
       .from('client-documents')
@@ -278,14 +282,45 @@ export function ClientChatPage() {
       throw new Error(`No se pudo subir el archivo: ${uploadError.message}`)
     }
 
-    // Paso 2: Llamar a la Edge Function con el path (body JSON pequeño, sin límite de tamaño)
-    const { data, error } = await supabase.functions.invoke('import-pdf', {
-      body: { storage_path: storagePath, filename: file.name },
-    })
+    // Paso 2: Llamar a la Edge Function (cambiamos el estado para que el usuario vea progreso)
+    setUploadStatus('extracting')
 
-    if (error) {
-      throw new Error(`Error del servidor: ${error.message}`)
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token || supabaseAnonKey
+
+    // Timeout de 3 minutos — la extracción de PDFs grandes puede tomar hasta 2 min
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3 * 60 * 1000)
+
+    let response: Response
+    try {
+      response = await fetch(`${supabaseUrl}/functions/v1/import-pdf`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': supabaseAnonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ storage_path: storagePath, filename: file.name }),
+        signal: controller.signal,
+      })
+    } catch (fetchErr: unknown) {
+      if (fetchErr instanceof Error && fetchErr.name === 'AbortError') {
+        throw new Error('El proceso tardó demasiado. El archivo puede ser muy pesado o complejo. Intenta con una versión comprimida.')
+      }
+      throw fetchErr
+    } finally {
+      clearTimeout(timeoutId)
     }
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({ error: `Error ${response.status}` }))
+      throw new Error(errData.error || `Error del servidor (${response.status})`)
+    }
+
+    const data = await response.json()
 
     if (data?.error) {
       throw new Error(data.error)
@@ -687,7 +722,11 @@ export function ClientChatPage() {
               {uploading ? (
                 <>
                   <Loader2 size={12} className="animate-spin text-[#C026A8]" />
-                  <span>Subiendo archivo...</span>
+                  <span>
+                    {uploadStatus === 'extracting'
+                      ? 'Extrayendo texto del PDF… puede tardar 1-2 min'
+                      : 'Subiendo archivo…'}
+                  </span>
                 </>
               ) : (
                 <>
