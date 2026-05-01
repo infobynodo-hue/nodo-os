@@ -238,7 +238,7 @@ export function ClientChatPage() {
         project_id: user.projectId!,
         session_type: selectedPlug,
         role: 'assistant' as const,
-        content: `⚠️ No se pudo leer el archivo **${file.name}**. Asegúrate de que no esté protegido con contraseña e inténtalo de nuevo.`,
+        content: `⚠️ No se pudo procesar el archivo **${file.name}**. ${(err instanceof Error && err.message) ? err.message : 'Inténtalo de nuevo o pega el contenido directamente en el chat.'}`,
         created_at: new Date().toISOString(),
       }])
     } finally {
@@ -260,18 +260,38 @@ export function ClientChatPage() {
    * Extrae el texto de un PDF usando la Edge Function `import-pdf`.
    * Se usa para PDFs ≥20 MB donde el base64 directo superaría los límites de la API.
    * Devuelve el contenido ya formateado para enviarlo a Claude como texto plano.
+   *
+   * NOTA: usamos fetch() directo en vez de supabase.functions.invoke() porque
+   * la versión 2.x del cliente Supabase tiene un bug donde serializa FormData
+   * como JSON en vez de enviarlo como multipart/form-data.
    */
   async function extractPdfViaEdgeFunction(file: File): Promise<string> {
     const formData = new FormData()
     formData.append('file', file)
 
-    const { data, error } = await supabase.functions.invoke('import-pdf', {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+    // Obtener el token de la sesión activa (fallback al anon key si no hay sesión)
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token || supabaseAnonKey
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/import-pdf`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': supabaseAnonKey,
+        // No seteamos Content-Type — el browser lo pone automáticamente con el boundary correcto
+      },
       body: formData,
     })
 
-    if (error) {
-      throw new Error(`Edge Function error: ${error.message}`)
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
+      throw new Error(errorData.error || `Error del servidor (${response.status})`)
     }
+
+    const data = await response.json()
 
     if (data?.error) {
       throw new Error(data.error)
