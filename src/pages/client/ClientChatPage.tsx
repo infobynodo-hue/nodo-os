@@ -203,7 +203,7 @@ export function ClientChatPage() {
 
     setUploading(true)
     try {
-      // Extract content based on file type (browser-side, no storage needed to proceed)
+      // Extract content based on file type
       let extractedContent = ''
       if (file.type === 'text/plain' || file.type === 'text/csv') {
         extractedContent = await file.text()
@@ -212,25 +212,23 @@ export function ClientChatPage() {
         extractedContent = `[IMAGEN_ADJUNTA:${base64}:${file.type}]`
       } else if (file.type === 'application/pdf') {
         // PDFs pequeños (<20 MB): base64 directo a Claude (más fiel al original)
-        // PDFs grandes (≥20 MB): Edge Function extrae el texto server-side (sin límites de payload)
+        // PDFs grandes (≥20 MB): subir a Storage → Edge Function descarga y extrae texto
+        // (Las Edge Functions tienen un límite de ~6 MB para el body, por eso usamos Storage)
         const DIRECT_LIMIT = 20 * 1024 * 1024
         if (file.size >= DIRECT_LIMIT) {
-          extractedContent = await extractPdfViaEdgeFunction(file)
+          extractedContent = await uploadToStorageAndExtract(file)
         } else {
           const base64 = await fileToBase64(file)
           extractedContent = `[PDF_BASE64:${base64}:application/pdf]`
         }
       } else {
         extractedContent = `[ARCHIVO: ${file.name} (${file.type})] El usuario ha adjuntado un archivo de tipo ${file.type}.`
+        // Subir a Storage en background para tenerlo guardado
+        const filePath = `${user.projectId}/${Date.now()}-${file.name}`
+        supabase.storage.from('client-documents').upload(filePath, file).catch(() => {})
       }
 
       setAttachedFile({ name: file.name, type: file.type, content: extractedContent })
-
-      // Upload to Supabase Storage in background (non-blocking)
-      const filePath = `${user.projectId}/${Date.now()}-${file.name}`
-      supabase.storage.from('client-documents').upload(filePath, file).catch(() => {
-        // Storage upload failure is non-critical — the file content is already available
-      })
     } catch (err) {
       console.error('Error procesando archivo:', err)
       setMessages(prev => [...prev, {
@@ -257,41 +255,37 @@ export function ClientChatPage() {
   }
 
   /**
-   * Extrae el texto de un PDF usando la Edge Function `import-pdf`.
-   * Se usa para PDFs ≥20 MB donde el base64 directo superaría los límites de la API.
-   * Devuelve el contenido ya formateado para enviarlo a Claude como texto plano.
+   * Flujo para PDFs ≥20 MB:
+   * 1. Sube el archivo a Supabase Storage (el browser maneja archivos grandes sin problema)
+   * 2. Llama a la Edge Function `import-pdf` con el path del archivo en Storage
+   * 3. La Edge Function descarga el archivo server-side y extrae el texto con unpdf
    *
-   * NOTA: usamos fetch() directo en vez de supabase.functions.invoke() porque
-   * la versión 2.x del cliente Supabase tiene un bug donde serializa FormData
-   * como JSON en vez de enviarlo como multipart/form-data.
+   * Por qué este enfoque:
+   * - Las Edge Functions tienen un límite de ~6 MB para el request body
+   * - Supabase Storage acepta archivos de hasta 50 MB (o más si está configurado)
+   * - supabase.functions.invoke() con JSON body funciona perfectamente
    */
-  async function extractPdfViaEdgeFunction(file: File): Promise<string> {
-    const formData = new FormData()
-    formData.append('file', file)
+  async function uploadToStorageAndExtract(file: File): Promise<string> {
+    if (!user?.projectId) throw new Error('No hay proyecto activo')
 
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+    // Paso 1: Subir a Supabase Storage (obligatorio, no en background)
+    const storagePath = `${user.projectId}/${Date.now()}-${file.name}`
+    const { error: uploadError } = await supabase.storage
+      .from('client-documents')
+      .upload(storagePath, file, { contentType: 'application/pdf' })
 
-    // Obtener el token de la sesión activa (fallback al anon key si no hay sesión)
-    const { data: sessionData } = await supabase.auth.getSession()
-    const token = sessionData.session?.access_token || supabaseAnonKey
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/import-pdf`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'apikey': supabaseAnonKey,
-        // No seteamos Content-Type — el browser lo pone automáticamente con el boundary correcto
-      },
-      body: formData,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
-      throw new Error(errorData.error || `Error del servidor (${response.status})`)
+    if (uploadError) {
+      throw new Error(`No se pudo subir el archivo: ${uploadError.message}`)
     }
 
-    const data = await response.json()
+    // Paso 2: Llamar a la Edge Function con el path (body JSON pequeño, sin límite de tamaño)
+    const { data, error } = await supabase.functions.invoke('import-pdf', {
+      body: { storage_path: storagePath, filename: file.name },
+    })
+
+    if (error) {
+      throw new Error(`Error del servidor: ${error.message}`)
+    }
 
     if (data?.error) {
       throw new Error(data.error)
