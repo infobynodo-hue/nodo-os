@@ -140,14 +140,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
       if (data.user) {
-        try {
-          const user = await resolveUser(data.user.id, data.user.email!)
-          set({ user })
-        } catch (resolveErr) {
-          console.error('resolveUser error:', resolveErr)
-          // Fallback: sesión válida pero sin perfil completo
-          set({ user: { id: data.user.id, email: data.user.email!, role: 'client' } })
-        }
+        // resolveUser determina si es usuario interno (admin/superadmin/tecnico) o cliente.
+        // Si falla, NO ponemos role:'client' como fallback silencioso — lanzamos el error
+        // para que el LoginPage lo muestre y podamos ver qué pasa.
+        const user = await resolveUser(data.user.id, data.user.email!)
+        set({ user })
       }
     } finally {
       set({ loading: false })
@@ -166,10 +163,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 async function resolveUser(supabaseId: string, email: string): Promise<AuthUser> {
   // Lanzar ambas queries en paralelo — ahorra ~200-400ms respecto a secuencial
-  const [{ data: internalUser }, { data: client }] = await Promise.all([
+  const [{ data: internalByUid, error: uidErr }, { data: client }] = await Promise.all([
     supabase.from('internal_users').select('*').eq('id', supabaseId).single(),
     supabase.from('clients').select('id').eq('contact_email', email).single(),
   ])
+
+  // Si la búsqueda por UUID falló (RLS, seeded UUID sin identity real, etc.),
+  // intentamos por email — más robusto para usuarios del equipo interno.
+  let internalUser = internalByUid
+  if (!internalUser) {
+    if (uidErr) console.warn('[resolveUser] UUID lookup failed:', uidErr.message)
+    const { data: byEmail } = await supabase
+      .from('internal_users')
+      .select('*')
+      .eq('email', email)
+      .single()
+    if (byEmail) internalUser = byEmail
+  }
 
   if (internalUser) {
     return {
