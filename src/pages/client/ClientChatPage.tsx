@@ -126,11 +126,35 @@ export function ClientChatPage() {
   }, [user?.id])
 
   useEffect(() => {
-    if (project && selectedPlug) {
-      localStorage.setItem('nodo_last_plug', selectedPlug)
-      loadMessages(selectedPlug)
-      setAttachedFile(null)
-    }
+    if (!project || !selectedPlug || !user?.projectId) return
+
+    localStorage.setItem('nodo_last_plug', selectedPlug)
+    loadMessages(selectedPlug)
+    setAttachedFile(null)
+
+    // Suscripción en tiempo real — nuevos mensajes llegan solos sin recargar
+    const channel = supabase
+      .channel(`chat:${user.projectId}:${selectedPlug}`)
+      .on(
+        'postgres_changes',
+        {
+          event:  'INSERT',
+          schema: 'public',
+          table:  'chat_messages',
+          filter: `project_id=eq.${user.projectId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as ChatMessage
+          if (newMsg.session_type !== selectedPlug) return
+          // Evitar duplicados (el mismo dispositivo ya lo añadió optimistamente)
+          setMessages(prev =>
+            prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]
+          )
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [selectedPlug, project])
 
   useEffect(() => {
@@ -176,10 +200,10 @@ export function ClientChatPage() {
       .select('*')
       .eq('project_id', user.projectId)
       .eq('session_type', plugId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(100)
-    setMessages(data || [])
-
+    // Invertir para mostrar del más antiguo al más reciente
+    setMessages((data || []).reverse())
   }
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
