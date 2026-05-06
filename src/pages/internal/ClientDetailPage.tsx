@@ -728,7 +728,7 @@ function ConversationsTab({
   businessName?: string
 }) {
   const [selectedPlug, setSelectedPlug] = useState<PlugTab>('onboarding')
-  const [messages, setMessages] = useState<{ role: string; content: string; created_at: string }[]>([])
+  const [messages, setMessages] = useState<{ id: string; role: string; content: string; created_at: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState<string | null>(null)
   const [summarizing, setSummarizing] = useState(false)
@@ -772,7 +772,7 @@ function ConversationsTab({
     // Cargar mensajes
     supabase
       .from('chat_messages')
-      .select('role, content, created_at')
+      .select('id, role, content, created_at')
       .eq('project_id', projectId)
       .eq('session_type', selectedPlug)
       .order('created_at')
