@@ -1,16 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft, LayoutDashboard, GitBranch, MessageSquare,
   Brain, Send, CreditCard, Puzzle, MoreVertical, Pencil, Power,
-  Upload, Loader2, Sparkles, FileDown,
+  Upload, Loader2, Sparkles, FileDown, CheckCircle,
   Key, Plus, Trash2, Eye, EyeOff, Copy, Check, Activity, LogIn, Clock, TrendingUp,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../store/auth'
+import { useAuthStore, IS_DEMO } from '../../store/auth'
 import { DEMO_CLIENTS, DEMO_PROJECTS, DEMO_PHASES, DEMO_TASKS, DEMO_BILLING, DEMO_BOT_KNOWLEDGE } from '../../lib/demo'
-
-const IS_DEMO = !import.meta.env.VITE_SUPABASE_URL
 import { NodoCard } from '../../components/ui/NodoCard'
 import { NodoBadge } from '../../components/ui/NodoBadge'
 import { NodoProgressBar } from '../../components/ui/NodoProgressBar'
@@ -18,10 +16,10 @@ import { NodoAvatar } from '../../components/ui/NodoAvatar'
 import { SERVICE_LABELS, PLUGS, KNOWLEDGE_CATEGORY_LABELS } from '../../types'
 import type {
   Client, Project, ProjectPhase, Task, BillingRecord,
-  BotKnowledge, PlugRequest, ProjectPlug, KnowledgeCategory, ClientCredential
+  BotKnowledge, PlugRequest, ProjectPlug, KnowledgeCategory, ClientCredential, ProjectDeliverable
 } from '../../types'
 
-type Tab = 'resumen' | 'fases' | 'onboarding' | 'bot' | 'solicitudes' | 'facturacion' | 'plugs' | 'accesos' | 'actividad'
+type Tab = 'resumen' | 'fases' | 'onboarding' | 'bot' | 'solicitudes' | 'facturacion' | 'plugs' | 'accesos' | 'actividad' | 'documentos'
 
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -39,6 +37,7 @@ export function ClientDetailPage() {
   const [knowledge, setKnowledge] = useState<BotKnowledge[]>([])
   const [requests, setRequests] = useState<PlugRequest[]>([])
   const [plugs, setPlugs] = useState<ProjectPlug[]>([])
+  const [deliverables, setDeliverables] = useState<ProjectDeliverable[]>([])
   const [credentials, setCredentials] = useState<ClientCredential[]>([])
   const [logins, setLogins] = useState<{ id: string; logged_at: string }[]>([])
   const [respondingTo, setRespondingTo] = useState<string | null>(null)
@@ -97,13 +96,14 @@ export function ClientDetailPage() {
 
     if (projectRes.data?.id) {
       const pid = projectRes.data.id
-      const [phasesRes, tasksRes, billingRes, knowledgeRes, requestsRes, plugsRes] = await Promise.all([
+      const [phasesRes, tasksRes, billingRes, knowledgeRes, requestsRes, plugsRes, deliverablesRes] = await Promise.all([
         supabase.from('project_phases').select('*').eq('project_id', pid).order('phase_number'),
         supabase.from('tasks').select('*').eq('project_id', pid).order('phase_number').order('order_index'),
         supabase.from('billing_records').select('*').eq('project_id', pid).order('period_month'),
         supabase.from('bot_knowledge').select('*').eq('project_id', pid).order('order_index'),
         supabase.from('plug_requests').select('*').eq('project_id', pid).order('created_at', { ascending: false }),
         supabase.from('project_plugs').select('*').eq('project_id', pid),
+        supabase.from('project_deliverables').select('*').eq('project_id', pid).order('created_at', { ascending: false }),
       ])
       setPhases(phasesRes.data || [])
       setTasks(tasksRes.data || [])
@@ -111,6 +111,7 @@ export function ClientDetailPage() {
       setKnowledge(knowledgeRes.data || [])
       setRequests(requestsRes.data || [])
       setPlugs(plugsRes.data || [])
+      setDeliverables(deliverablesRes.data || [])
 
       // Health Score
       const { data: hs } = await supabase
@@ -133,6 +134,36 @@ export function ClientDetailPage() {
       const pct = enabled.length > 0 ? Math.round((completed.length / enabled.length) * 100) : 0
       await supabase.from('projects').update({ progress_pct: pct }).eq('id', project.id)
       setProject(prev => prev ? { ...prev, progress_pct: pct } : prev)
+    }
+  }
+
+  async function addTask(phaseNumber: number) {
+    if (!project) return
+    const title = prompt('Nombre de la tarea:')
+    if (!title?.trim()) return
+    const assignedTo = confirm('¿Es tarea del cliente? (Aceptar = Cliente, Cancelar = Interno)') ? 'client' : 'internal'
+    const maxOrder = Math.max(0, ...tasks.filter(t => t.phase_number === phaseNumber).map(t => t.order_index))
+    const { data } = await supabase.from('tasks').insert({
+      project_id: project.id,
+      phase_number: phaseNumber,
+      title: title.trim(),
+      assigned_to: assignedTo,
+      is_enabled: true,
+      is_completed: false,
+      order_index: maxOrder + 1,
+    }).select().single()
+    if (data) setTasks(prev => [...prev, data])
+  }
+
+  async function completeOnboarding(phaseId: string, isCompleted: boolean) {
+    const newStatus = isCompleted ? 'in_progress' : 'completed'
+    await supabase.from('project_phases').update({ status: newStatus }).eq('id', phaseId)
+    setPhases(prev => prev.map(p => p.id === phaseId ? { ...p, status: newStatus } : p))
+    // Actualizar onboarding_sessions si existe
+    if (project?.id) {
+      await supabase.from('onboarding_sessions')
+        .update({ status: newStatus === 'completed' ? 'completed' : 'in_progress' })
+        .eq('project_id', project.id)
     }
   }
 
@@ -192,6 +223,7 @@ export function ClientDetailPage() {
     { id: 'plugs', label: 'Plugs', icon: Puzzle },
     { id: 'accesos', label: 'Accesos', icon: Key },
     { id: 'actividad', label: 'Actividad', icon: Activity },
+    { id: 'documentos', label: 'Documentos', icon: Upload },
   ]
 
   return (
@@ -403,8 +435,37 @@ export function ClientDetailPage() {
                         <p className="text-xs text-[#9CA3AF]">{phaseTasks.filter(t => t.is_completed).length}/{phaseTasks.length} tareas</p>
                       </div>
                     </div>
-                    <NodoBadge status={phase.status} size="sm" />
+                    <div className="flex items-center gap-2">
+                      <NodoBadge status={phase.status} size="sm" />
+                      <button
+                        onClick={() => addTask(phase.phase_number)}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-[#F4F6F9] text-[#6B7280] hover:bg-[#C8F135]/15 hover:text-[#4B5563] border border-transparent hover:border-[#C8F135]/40 transition-all"
+                        title="Añadir tarea"
+                      >
+                        <Plus size={12} /> Tarea
+                      </button>
+                    </div>
                   </div>
+                  {/* Botón onboarding completado — solo en fase 1 */}
+                  {phase.phase_number === 1 && (
+                    <div className="px-4 py-2.5 bg-[#F9FFF0] border-b border-[#E5E8EF] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-[#4B5563]">
+                          {phase.status === 'completed' ? '✅ Onboarding marcado como completado' : '¿El cliente completó el onboarding?'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => completeOnboarding(phase.id, phase.status === 'completed')}
+                        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all border ${
+                          phase.status === 'completed'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-white'
+                            : 'bg-[#C8F135] text-[#1A1F2E] border-[#C8F135] hover:bg-[#b8e020]'
+                        }`}
+                      >
+                        {phase.status === 'completed' ? 'Desmarcar' : '✓ Onboarding completado'}
+                      </button>
+                    </div>
+                  )}
                   <div className="divide-y divide-[#F4F6F9]">
                     {phaseTasks.map((task) => (
                       <div key={task.id} className="flex items-center gap-3 px-4 py-3">
@@ -456,7 +517,6 @@ export function ClientDetailPage() {
             <ConversationsTab
               projectId={project?.id}
               businessName={client?.business_name}
-              contactName={client?.contact_name}
             />
           </div>
         )}
@@ -602,6 +662,17 @@ export function ClientDetailPage() {
           <ActividadTab logins={logins} />
         )}
 
+        {/* DOCUMENTOS */}
+        {tab === 'documentos' && (
+          <DocumentosTab
+            projectId={project?.id}
+            clientId={client?.id}
+            deliverables={deliverables}
+            onDeliverableAdded={(d) => setDeliverables(prev => [d, ...prev])}
+            onDeliverableDeleted={(id) => setDeliverables(prev => prev.filter(d => d.id !== id))}
+          />
+        )}
+
         {/* PLUGS */}
         {tab === 'plugs' && (
           <div className="space-y-3 fade-in">
@@ -651,18 +722,29 @@ const PLUG_TABS = [
 type PlugTab = typeof PLUG_TABS[number]['id']
 
 function ConversationsTab({
-  projectId, businessName, contactName,
+  projectId, businessName,
 }: {
   projectId?: string
   businessName?: string
-  contactName?: string
 }) {
   const [selectedPlug, setSelectedPlug] = useState<PlugTab>('onboarding')
   const [messages, setMessages] = useState<{ role: string; content: string; created_at: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState<string | null>(null)
   const [summarizing, setSummarizing] = useState(false)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
+  const [savedDoc, setSavedDoc] = useState(false)
+  const [savedDocs, setSavedDocs] = useState<{ id: string; title: string; file_path: string; created_at: string }[]>([])
   const [msgCounts, setMsgCounts] = useState<Record<string, number>>({})
+  // Bot knowledge extraction
+  const [pendingKnowledge, setPendingKnowledge] = useState<Array<{
+    category: string; title: string; content: string
+    existing: { id: string; title: string; content: string } | null
+    action: 'add' | 'replace' | 'skip'
+  }>>([])
+  const [extracting, setExtracting] = useState(false)
+  const [savingKnowledge, setSavingKnowledge] = useState(false)
+  const [knowledgeSaved, setKnowledgeSaved] = useState(false)
 
   // Load message counts for all plugs (badge)
   useEffect(() => {
@@ -685,6 +767,9 @@ function ConversationsTab({
     if (!projectId) return
     setLoading(true)
     setSummary(null)
+    setSummaryError(null)
+    setSavedDoc(false)
+    // Cargar mensajes
     supabase
       .from('chat_messages')
       .select('role, content, created_at')
@@ -695,6 +780,15 @@ function ConversationsTab({
         setMessages(data || [])
         setLoading(false)
       })
+    // Cargar documentos guardados de este plug
+    supabase
+      .from('project_deliverables')
+      .select('id, title, file_path, created_at')
+      .eq('project_id', projectId)
+      .ilike('file_path', `%resumen-${selectedPlug}%`)
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => setSavedDocs(data || []))
   }, [projectId, selectedPlug])
 
   const SUMMARY_PROMPTS: Record<PlugTab, { system: string; maxTokens: number; docTitle: string }> = {
@@ -847,13 +941,172 @@ Solo incluye secciones con información real de la conversación.`,
   }
 
   async function generateSummary() {
-    if (!messages.length) return
+    if (!messages.length || !projectId) return
     setSummarizing(true)
+    setSavedDoc(false)
+    setSummaryError(null)
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 120_000) // 2 min timeout
+
     try {
+      const cfg = SUMMARY_PROMPTS[selectedPlug]
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+      if (!apiKey) throw new Error('API key no configurada')
+
+      // Enviar toda la conversación — Claude soporta contextos largos sin problema
       const transcript = messages
         .map(m => `${m.role === 'user' ? 'CLIENTE' : 'ASISTENTE'}: ${m.content}`)
         .join('\n\n')
-      const cfg = SUMMARY_PROMPTS[selectedPlug]
+
+      const body = JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 8192,
+        system: cfg.system,
+        messages: [{ role: 'user', content: `Conversación de ${businessName || 'el cliente'}:\n\n${transcript}` }],
+      })
+
+      // Reintento automático si la API está sobrecargada (529)
+      let res: Response | null = null
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body,
+        })
+        if (res.status !== 529) break
+        if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 8000)) // 8s, 16s
+      }
+      if (!res) throw new Error('No se pudo conectar con la API')
+
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '')
+        if (res.status === 529) throw new Error('Los servidores de Anthropic están saturados. Espera 1-2 minutos e inténtalo de nuevo.')
+        throw new Error(`Error API ${res.status}: ${errBody}`)
+      }
+
+      const data = await res.json() as { content: Array<{ text: string }>; stop_reason?: string }
+      if (!data.content?.[0]?.text) throw new Error('Respuesta vacía de la API')
+
+      const generatedSummary = data.content[0].text
+      setSummary(generatedSummary)
+
+      // ✅ Resumen listo — liberar el botón ya, el guardado sigue en segundo plano
+      clearTimeout(timeoutId)
+      setSummarizing(false)
+
+      // Lanzar extracción a Base del Bot automáticamente (solo en onboarding)
+      if (selectedPlug === 'onboarding') {
+        extractKnowledge(generatedSummary)
+      }
+
+      // Guardar HTML en storage + project_deliverables (no bloquea la UI)
+      const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+      const htmlContent = buildSummaryHTML(cfg.docTitle, businessName || 'Cliente', date, generatedSummary)
+      const blob = new Blob([htmlContent], { type: 'text/html' })
+      const ts = Date.now()
+      const filePath = `onboarding-summaries/${projectId}/${ts}-resumen-${selectedPlug}.html`
+
+      supabase.storage
+        .from('client-documents')
+        .upload(filePath, blob, { contentType: 'text/html' })
+        .then(({ error: storageErr }) => {
+          if (!storageErr) {
+            supabase.from('project_deliverables').insert({
+              project_id: projectId,
+              title: `${cfg.docTitle} — ${businessName || 'Cliente'}`,
+              description: `Generado el ${date}`,
+              file_path: filePath,
+              file_name: `resumen-${selectedPlug}-${ts}.html`,
+              type: 'documento',
+              published: true,
+            }).select('id, title, file_path, created_at').single()
+              .then(({ data: newDoc }) => {
+                setSavedDoc(true)
+                if (newDoc) setSavedDocs(prev => [newDoc, ...prev])
+              })
+          }
+        })
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        setSummaryError('La generación tardó demasiado (más de 2 min). Inténtalo de nuevo.')
+      } else {
+        setSummaryError(e instanceof Error ? e.message : 'Error desconocido al generar el resumen.')
+      }
+      console.error(e)
+    } finally {
+      clearTimeout(timeoutId)
+      setSummarizing(false)
+    }
+  }
+
+
+  function buildSummaryHTML(docTitle: string, clientName: string, date: string, content: string): string {
+    const contentHtml = content
+      .split('\n')
+      .map(line => {
+        if (/^##\s/.test(line.trim())) return `<h2>${line.replace(/^##\s/, '')}</h2>`
+        if (/^###\s/.test(line.trim())) return `<h3>${line.replace(/^###\s/, '')}</h3>`
+        if (/^\*\*(.+)\*\*:?$/.test(line.trim())) return `<h3>${line.replace(/\*\*/g, '')}</h3>`
+        if (line.startsWith('- ') || line.startsWith('• ')) return `<li>${line.replace(/^[-•]\s+/, '').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</li>`
+        if (/^\d+\.\s/.test(line.trim())) return `<li class="numbered">${line.replace(/^\d+\.\s/, '')}</li>`
+        if (line.trim() === '') return '<div class="spacer"></div>'
+        return `<p>${line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`
+      })
+      .join('\n')
+    return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/>
+<title>${docTitle} — ${clientName}</title>
+<style>
+* { margin:0;padding:0;box-sizing:border-box }
+body { font-family:'Segoe UI',Arial,sans-serif;color:#1a1827;background:white;padding:48px;max-width:820px;margin:0 auto }
+.header { display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #C026A8;margin-bottom:36px }
+.brand { font-size:24px;font-weight:900;color:#1a1827;letter-spacing:2px }
+.brand span { color:#C026A8 }
+.meta { text-align:right }
+.meta-title { font-size:15px;font-weight:700;color:#1a1827;margin-bottom:4px }
+.meta-client { font-size:13px;color:#C026A8;font-weight:600 }
+.meta-date { font-size:11px;color:#9ca3af;margin-top:2px }
+h2 { font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#C026A8;margin:28px 0 10px;padding-bottom:6px;border-bottom:1px solid #f0eefa }
+h3 { font-size:13px;font-weight:700;color:#1a1827;margin:12px 0 4px }
+p { font-size:13px;line-height:1.75;color:#374151;margin-bottom:4px }
+li { font-size:13px;line-height:1.75;color:#374151;margin:3px 0 3px 20px }
+li.numbered { list-style:decimal } li:not(.numbered) { list-style:disc }
+strong { color:#1a1827;font-weight:600 }
+.spacer { height:8px }
+@media print { body { padding:32px } }
+</style></head><body>
+<div class="header">
+  <div><div class="brand">NODO<span> ONE</span></div><div style="font-size:11px;color:#9ca3af;margin-top:3px">Panel Interno</div></div>
+  <div class="meta"><div class="meta-title">${docTitle}</div><div class="meta-client">${clientName}</div><div class="meta-date">${date}</div></div>
+</div>
+${contentHtml}
+</body></html>`
+  }
+
+  function exportPDF() {
+    if (!summary) return
+    const cfg = SUMMARY_PROMPTS[selectedPlug]
+    const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+    const html = buildSummaryHTML(cfg.docTitle, businessName || 'Cliente', date, summary)
+    const win = window.open('', '_blank')
+    if (!win) return
+    win.document.write(html)
+    win.document.close()
+    setTimeout(() => win.print(), 400)
+  }
+
+  async function extractKnowledge(summaryText: string) {
+    if (!projectId) return
+    setExtracting(true)
+    setPendingKnowledge([])
+    setKnowledgeSaved(false)
+    try {
       const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -864,93 +1117,85 @@ Solo incluye secciones con información real de la conversación.`,
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
-          model: selectedPlug === 'onboarding' ? 'claude-sonnet-4-5' : 'claude-haiku-4-5-20251001',
-          max_tokens: cfg.maxTokens,
-          system: cfg.system,
-          messages: [{ role: 'user', content: `Conversación de ${businessName || 'el cliente'}:\n\n${transcript}` }],
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 4096,
+          system: `Eres un extractor de datos. A partir de un documento ejecutivo de onboarding, extrae la información en un array JSON.
+Devuelve ÚNICAMENTE el array JSON sin markdown ni texto extra.
+Cada objeto debe tener: { "category": string, "title": string, "content": string }
+Categorías válidas (usa EXACTAMENTE estas):
+- descripcion_general
+- personalidad_tono
+- servicios_activos
+- horarios_disponibilidad
+- preguntas_frecuentes
+- indicaciones_operativas
+- prohibiciones
+- alertas_escalamiento
+Crea tantas entradas como haya información. Sé exhaustivo y detallado en el content.`,
+          messages: [{ role: 'user', content: summaryText }],
         }),
       })
+      if (!res.ok) return
       const data = await res.json() as { content: Array<{ text: string }> }
-      setSummary(data.content[0].text)
+      const raw = data.content[0]?.text?.trim() ?? ''
+      const jsonStr = raw.startsWith('[') ? raw : raw.replace(/^```json\n?/, '').replace(/\n?```$/, '')
+      const extracted: Array<{ category: string; title: string; content: string }> = JSON.parse(jsonStr)
+
+      // Cargar bot_knowledge existente para este proyecto
+      const { data: existing } = await supabase
+        .from('bot_knowledge')
+        .select('id, category, title, content')
+        .eq('project_id', projectId)
+
+      const existingMap: Record<string, { id: string; title: string; content: string }> = {}
+      for (const e of existing || []) {
+        existingMap[e.category] = { id: e.id, title: e.title, content: e.content }
+      }
+
+      const pending = extracted.map(item => ({
+        category: item.category,
+        title: item.title,
+        content: item.content,
+        existing: existingMap[item.category] ?? null,
+        action: (existingMap[item.category] ? 'replace' : 'add') as 'add' | 'replace' | 'skip',
+      }))
+      setPendingKnowledge(pending)
     } catch (e) {
-      console.error(e)
+      console.error('Error extrayendo knowledge:', e)
     } finally {
-      setSummarizing(false)
+      setExtracting(false)
     }
   }
 
-  function exportPDF() {
-    if (!summary) return
-    const cfg = SUMMARY_PROMPTS[selectedPlug]
-    const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
-    const contentHtml = summary
-      .split('\n')
-      .map(line => {
-        if (/^##\s/.test(line.trim())) return `<h2>${line.replace(/^##\s/, '')}</h2>`
-        if (/^###\s/.test(line.trim())) return `<h3>${line.replace(/^###\s/, '')}</h3>`
-        if (/^\*\*(.+)\*\*:?$/.test(line.trim())) return `<h3>${line.replace(/\*\*/g, '')}</h3>`
-        if (line.startsWith('- ') || line.startsWith('• ')) return `<li>${line.replace(/^[-•]\s+/, '').replace(/\*\*/g, '<strong>').replace(/\*\*/g, '</strong>')}</li>`
-        if (/^\d+\.\s/.test(line.trim())) return `<li class="numbered">${line.replace(/^\d+\.\s/, '')}</li>`
-        if (line.trim() === '') return '<div class="spacer"></div>'
-        return `<p>${line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`
-      })
-      .join('\n')
-
-    const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8"/>
-  <title>${cfg.docTitle} — ${businessName || 'Cliente'}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1827; background: white; padding: 48px; max-width: 820px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 20px; border-bottom: 3px solid #C026A8; margin-bottom: 36px; }
-    .brand { font-size: 24px; font-weight: 900; color: #1a1827; letter-spacing: 2px; }
-    .brand span { color: #C026A8; }
-    .brand-sub { font-size: 11px; color: #9ca3af; margin-top: 3px; letter-spacing: 0.5px; }
-    .meta { text-align: right; }
-    .meta-title { font-size: 15px; font-weight: 700; color: #1a1827; margin-bottom: 4px; }
-    .meta-client { font-size: 13px; color: #C026A8; font-weight: 600; }
-    .meta-date { font-size: 11px; color: #9ca3af; margin-top: 2px; }
-    h2 { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #C026A8; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #f0eefa; }
-    h3 { font-size: 13px; font-weight: 700; color: #1a1827; margin: 12px 0 4px; }
-    p { font-size: 13px; line-height: 1.75; color: #374151; margin-bottom: 4px; }
-    li { font-size: 13px; line-height: 1.75; color: #374151; margin: 3px 0 3px 20px; }
-    li.numbered { list-style: decimal; }
-    li:not(.numbered) { list-style: disc; }
-    strong { color: #1a1827; font-weight: 600; }
-    .spacer { height: 6px; }
-    .footer { margin-top: 52px; padding-top: 14px; border-top: 1px solid #e8e6f0; font-size: 10px; color: #9ca3af; text-align: center; display: flex; justify-content: space-between; }
-    @media print { body { padding: 28px; } }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div>
-      <div class="brand">NODO <span>ONE</span></div>
-      <div class="brand-sub">Plataforma de gestión de servicios</div>
-    </div>
-    <div class="meta">
-      <div class="meta-title">${cfg.docTitle}</div>
-      ${businessName ? `<div class="meta-client">${businessName}</div>` : ''}
-      ${contactName ? `<div style="font-size:12px;color:#6b7280">${contactName}</div>` : ''}
-      <div class="meta-date">${date}</div>
-    </div>
-  </div>
-  <div class="content">${contentHtml}</div>
-  <div class="footer">
-    <span>Generado por NODO ONE</span>
-    <span>${date}</span>
-    <span>Documento confidencial</span>
-  </div>
-</body>
-</html>`
-
-    const win = window.open('', '_blank')
-    if (!win) return
-    win.document.write(html)
-    win.document.close()
-    setTimeout(() => win.print(), 400)
+  async function saveKnowledge() {
+    if (!projectId || !pendingKnowledge.length) return
+    setSavingKnowledge(true)
+    try {
+      for (const item of pendingKnowledge) {
+        if (item.action === 'skip') continue
+        if (item.action === 'replace' && item.existing) {
+          await supabase.from('bot_knowledge').update({
+            title: item.title,
+            content: item.content,
+          }).eq('id', item.existing.id)
+        } else if (item.action === 'add') {
+          await supabase.from('bot_knowledge').insert({
+            project_id: projectId,
+            category: item.category,
+            title: item.title,
+            content: item.content,
+            is_visible_to_client: true,
+            order_index: 0,
+          })
+        }
+      }
+      setKnowledgeSaved(true)
+      setPendingKnowledge([])
+    } catch (e) {
+      console.error('Error guardando knowledge:', e)
+    } finally {
+      setSavingKnowledge(false)
+    }
   }
 
   const plugLabel = PLUG_TABS.find(p => p.id === selectedPlug)?.label ?? selectedPlug
@@ -1001,7 +1246,13 @@ Solo incluye secciones con información real de la conversación.`,
             <p className="text-xs text-[#9CA3AF]">
               {messages.length} mensajes · {messages.filter(m => m.role === 'user').length} del cliente
             </p>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {savedDoc && (
+                <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
+                  <CheckCircle size={12} />
+                  Guardado en documentos
+                </span>
+              )}
               <button
                 onClick={generateSummary}
                 disabled={summarizing}
@@ -1016,11 +1267,45 @@ Solo incluye secciones con información real de la conversación.`,
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C026A8] text-white text-xs font-medium hover:bg-[#A01E8E] transition-colors"
                 >
                   <FileDown size={12} />
-                  Exportar PDF
+                  Descargar PDF
                 </button>
               )}
             </div>
           </div>
+
+          {/* Error */}
+          {summaryError && (
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+              <span className="mt-0.5">⚠️</span>
+              <span>{summaryError}</span>
+            </div>
+          )}
+
+          {/* Documentos guardados anteriormente */}
+          {savedDocs.length > 0 && !summary && (
+            <NodoCard className="border border-white/8 bg-[#141921]">
+              <p className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">Resúmenes anteriores</p>
+              <div className="space-y-1.5">
+                {savedDocs.map(doc => (
+                  <div key={doc.id} className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-white truncate">{doc.title}</p>
+                      <p className="text-[10px] text-[#6B7280]">{new Date(doc.created_at).toLocaleString('es', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const { data } = await supabase.storage.from('client-documents').createSignedUrl(doc.file_path, 3600)
+                        if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+                      }}
+                      className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-md bg-[#1E2433] text-[#9CA3AF] hover:text-white text-xs transition-colors"
+                    >
+                      <FileDown size={11} /> Ver
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </NodoCard>
+          )}
 
           {/* AI Summary */}
           {summary && (
@@ -1033,10 +1318,86 @@ Solo incluye secciones con información real de la conversación.`,
             </NodoCard>
           )}
 
+          {/* Extracción Base del Bot */}
+          {extracting && (
+            <div className="flex items-center gap-2 text-xs text-[#9CA3AF] px-1">
+              <Loader2 size={12} className="animate-spin text-[#C8F135]" />
+              Extrayendo información para la Base del Bot...
+            </div>
+          )}
+          {knowledgeSaved && (
+            <div className="flex items-center gap-2 text-xs text-emerald-400 px-1">
+              <CheckCircle size={12} />
+              Base del Bot actualizada correctamente
+            </div>
+          )}
+          {pendingKnowledge.length > 0 && (
+            <NodoCard className="border border-violet-500/20 bg-[#0f1623]">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Brain size={14} className="text-violet-400" />
+                  <span className="text-xs font-semibold text-violet-400 uppercase tracking-wider">Guardar en Base del Bot</span>
+                </div>
+                <button
+                  onClick={saveKnowledge}
+                  disabled={savingKnowledge}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-700 transition-colors disabled:opacity-50"
+                >
+                  {savingKnowledge ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                  {savingKnowledge ? 'Guardando...' : 'Aplicar selección'}
+                </button>
+              </div>
+              <div className="space-y-3">
+                {pendingKnowledge.map((item, idx) => (
+                  <div key={idx} className="rounded-lg border border-white/8 overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2 bg-white/4">
+                      <div>
+                        <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider">{item.category.replace(/_/g, ' ')}</span>
+                        <p className="text-xs font-medium text-white mt-0.5">{item.title}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        {(['add', 'replace', 'skip'] as const).map(a => (
+                          <button
+                            key={a}
+                            onClick={() => setPendingKnowledge(prev => prev.map((p, i) => i === idx ? { ...p, action: a } : p))}
+                            className={`text-[10px] px-2 py-0.5 rounded font-medium transition-colors ${
+                              item.action === a
+                                ? a === 'skip' ? 'bg-[#6B7280] text-white' : a === 'replace' ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'
+                                : 'bg-white/8 text-[#9CA3AF] hover:bg-white/15'
+                            }`}
+                          >
+                            {a === 'add' ? 'Añadir' : a === 'replace' ? 'Reemplazar' : 'Saltar'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {item.existing && item.action === 'replace' && (
+                      <div className="grid grid-cols-2 divide-x divide-white/8">
+                        <div className="px-3 py-2">
+                          <p className="text-[9px] text-[#9CA3AF] uppercase font-bold mb-1">Actual</p>
+                          <p className="text-[11px] text-[#9CA3AF] leading-relaxed line-clamp-3">{item.existing.content}</p>
+                        </div>
+                        <div className="px-3 py-2">
+                          <p className="text-[9px] text-emerald-400 uppercase font-bold mb-1">Nuevo</p>
+                          <p className="text-[11px] text-[#D1D5DB] leading-relaxed line-clamp-3">{item.content}</p>
+                        </div>
+                      </div>
+                    )}
+                    {item.action === 'add' && (
+                      <div className="px-3 py-2">
+                        <p className="text-[11px] text-[#D1D5DB] leading-relaxed line-clamp-3">{item.content}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </NodoCard>
+          )}
+
           {/* Chat transcript */}
           <div className="space-y-3">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
                   msg.role === 'user'
                     ? 'bg-[#1E2433] text-white'
@@ -1578,6 +1939,130 @@ function InternalCredentialCard({
           <Trash2 size={11} />
         </button>
       </div>
+    </div>
+  )
+}
+
+// ─── DOCUMENTOS TAB ──────────────────────────────────────────────────────────
+function DocumentosTab({
+  projectId, clientId, deliverables, onDeliverableAdded, onDeliverableDeleted,
+}: {
+  projectId?: string
+  clientId?: string
+  deliverables: ProjectDeliverable[]
+  onDeliverableAdded: (d: ProjectDeliverable) => void
+  onDeliverableDeleted: (id: string) => void
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  async function handleUpload(files: FileList | null) {
+    if (!files || !projectId || !clientId) return
+    const file = files[0]
+    setError(null)
+    setUploading(true)
+    try {
+      const slug = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const path = `internal-uploads/${projectId}/${Date.now()}_${slug}`
+      const { error: upErr } = await supabase.storage.from('client-documents').upload(path, file)
+      if (upErr) { setError('Error al subir el archivo.'); return }
+      const fileType: ProjectDeliverable['type'] = file.name.match(/\.(pdf)$/i) ? 'documento'
+        : file.name.match(/\.(mp4|mov|avi|webm)$/i) ? 'video'
+        : 'documento'
+      const { data, error: dbErr } = await supabase
+        .from('project_deliverables')
+        .insert({
+          project_id: projectId,
+          title: file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' '),
+          description: 'Subido por el equipo NODO ONE',
+          file_path: path,
+          file_name: file.name,
+          type: fileType,
+          published: true,
+        })
+        .select()
+        .single()
+      if (!dbErr && data) onDeliverableAdded(data)
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  async function handleDelete(doc: ProjectDeliverable) {
+    if (!confirm(`¿Eliminar "${doc.title}"?`)) return
+    setDeleting(doc.id)
+    if (doc.file_path) await supabase.storage.from('client-documents').remove([doc.file_path])
+    await supabase.from('project_deliverables').delete().eq('id', doc.id)
+    onDeliverableDeleted(doc.id)
+    setDeleting(null)
+  }
+
+  async function openDoc(doc: ProjectDeliverable) {
+    if (doc.external_url) { window.open(doc.external_url, '_blank'); return }
+    if (doc.file_path) {
+      const { data } = await supabase.storage.from('client-documents').createSignedUrl(doc.file_path, 3600)
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+    }
+  }
+
+  const typeIcon: Record<string, string> = { documento: '📄', video: '🎬', link: '🔗', acceso: '🔑', otro: '📦' }
+
+  return (
+    <div className="space-y-4 fade-in">
+      {/* Upload area */}
+      <NodoCard>
+        <div
+          onClick={() => fileRef.current?.click()}
+          className="border-2 border-dashed border-[#E5E8EF] rounded-xl p-6 text-center cursor-pointer hover:border-[#C8F135]/60 hover:bg-[#F9FFF0] transition-all"
+        >
+          <Upload size={20} className="mx-auto mb-2 text-[#9CA3AF]" />
+          <p className="text-sm font-medium text-[#374151]">Subir documento</p>
+          <p className="text-xs text-[#9CA3AF] mt-1">PDF, Word, imágenes, vídeos — máx. 50 MB</p>
+          {uploading && <p className="text-xs text-[#C8F135] mt-2 font-medium">Subiendo...</p>}
+          {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+        </div>
+        <input ref={fileRef} type="file" className="hidden" onChange={e => handleUpload(e.target.files)} />
+      </NodoCard>
+
+      {/* List */}
+      {deliverables.length === 0 ? (
+        <NodoCard className="text-center py-10">
+          <p className="text-2xl mb-2">📁</p>
+          <p className="text-sm text-[#9CA3AF]">No hay documentos todavía</p>
+        </NodoCard>
+      ) : (
+        <div className="space-y-2">
+          {deliverables.map(doc => (
+            <NodoCard key={doc.id} padding="none">
+              <div className="flex items-center gap-3 px-4 py-3">
+                <span className="text-xl flex-shrink-0">{typeIcon[doc.type] ?? '📄'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#1A1F2E] truncate">{doc.title}</p>
+                  <p className="text-xs text-[#9CA3AF]">{doc.description} · {new Date(doc.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => openDoc(doc)}
+                    className="text-xs px-2.5 py-1.5 rounded-lg bg-[#F4F6F9] text-[#374151] hover:bg-[#E5E8EF] transition-colors flex items-center gap-1"
+                  >
+                    <Eye size={12} /> Ver
+                  </button>
+                  <button
+                    onClick={() => handleDelete(doc)}
+                    disabled={deleting === doc.id}
+                    className="text-xs px-2.5 py-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-1"
+                  >
+                    <Trash2 size={12} /> {deleting === doc.id ? '...' : 'Eliminar'}
+                  </button>
+                </div>
+              </div>
+            </NodoCard>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
